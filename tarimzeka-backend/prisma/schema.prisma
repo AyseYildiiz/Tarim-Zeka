@@ -1,0 +1,132 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  phone         String?
+  password      String
+  location      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  fields        Field[]
+  notifications Notification[]
+  savings       Saving[]
+}
+
+model Field {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  location        String
+  latitude        Float?
+  longitude       Float?
+  soilType        String   // kumlu, killi, tınlı, turbalı
+  cropType        String   // buğday, domates, pamuk, etc.
+  area            Float?   // m²
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  soilAnalyses    SoilAnalysis[]
+  irrigationLogs  IrrigationLog[]
+  schedules       IrrigationSchedule[]
+}
+
+model SoilAnalysis {
+  id                String   @id @default(uuid())
+  fieldId           String
+  imageUrl          String?
+  soilType          String   // AI tahmini
+  soilQuality       String   // İyi, Orta, Zayıf
+  moistureLevel     String   // Yüksek, Orta, Düşük
+  ph                Float?
+  organicMatter     Float?
+  waterManagement   String   @db.Text // AI önerisi
+  recommendedCrops  String[] // Önerilen ürünler
+  analysisDate      DateTime @default(now())
+  aiResponse        String?  @db.Text // Tam AI cevabı
+  
+  field             Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+}
+
+model IrrigationSchedule {
+  id              String   @id @default(uuid())
+  fieldId         String
+  date            DateTime
+  recommendedTime String   // "06:00-08:00"
+  waterAmount     Float    // Litre/m²
+  weatherTemp     Float?
+  weatherHumidity Float?
+  weatherCondition String?
+  status          String   @default("pending") // pending, completed, skipped
+  note            String?  @db.Text
+  createdAt       DateTime @default(now())
+  
+  field           Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+}
+
+model IrrigationLog {
+  id              String   @id @default(uuid())
+  fieldId         String
+  scheduledDate   DateTime
+  completedDate   DateTime @default(now())
+  waterUsed       Float    // Gerçek kullanılan su (Litre)
+  duration        Int?     // Dakika
+  notes           String?
+  
+  field           Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+}
+
+model Saving {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime @default(now())
+  waterSaved      Float    // Litre
+  savingRate      Float    // Yüzde
+  comparison      Float?   // Geleneksel yöntemle karşılaştırma
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, date])
+}
+
+model Notification {
+  id              String   @id @default(uuid())
+  userId          String
+  type            String   // irrigation, rain, warning
+  title           String
+  message         String   @db.Text
+  isRead          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  scheduledFor    DateTime?
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+}
+
+model WeatherCache {
+  id              String   @id @default(uuid())
+  location        String   @unique
+  latitude        Float
+  longitude       Float
+  temperature     Float
+  humidity        Float
+  condition       String
+  precipitation   Float
+  forecast        Json     // 7 günlük tahmin
+  updatedAt       DateTime @default(now())
+  
+  @@index([location])
+}

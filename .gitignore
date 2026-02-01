@@ -1,0 +1,11 @@
+# Backend
+tarimzeka-backend/node_modules/
+tarimzeka-backend/.env
+
+# Mobile
+tarimzeka-mobile/node_modules/
+tarimzeka-mobile/.expo/
+
+# OS
+.DS_Store
+*.log
