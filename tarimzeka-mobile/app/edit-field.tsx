@@ -16,6 +16,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 import LocationPicker from '../components/LocationPicker';
+import { useTheme } from '../context/ThemeContext';
 
 const SOIL_TYPES = [
     { value: 'Bilmiyorum', label: 'Bilmiyorum', icon: '❓' },
@@ -27,21 +28,64 @@ const SOIL_TYPES = [
 ];
 
 const CROP_TYPES = [
+    // Tahıllar
     { value: 'Buğday', icon: '🌾' },
+    { value: 'Arpa', icon: '🌾' },
     { value: 'Mısır', icon: '🌽' },
+    { value: 'Çavdar', icon: '🌾' },
+    { value: 'Mercimek', icon: '🟠' },
+    { value: 'Nohut', icon: '🟤' },
+
+    // Sebzeler
     { value: 'Domates', icon: '🍅' },
     { value: 'Biber', icon: '🌶️' },
+    { value: 'Patlıcan', icon: '🍆' },
+    { value: 'Salatalık', icon: '🥒' },
+    { value: 'Kabak', icon: '🎃' },
     { value: 'Patates', icon: '🥔' },
-    { value: 'Ayçiçeği', icon: '🌻' },
-    { value: 'Pamuk', icon: '☁️' },
-    { value: 'Üzüm', icon: '🍇' },
-    { value: 'Zeytin', icon: '🫒' },
+    { value: 'Soğan', icon: '🧅' },
+    { value: 'Sarımsak', icon: '🧄' },
+    { value: 'Havuç', icon: '🥕' },
+    { value: 'Lahana', icon: '🥬' },
+    { value: 'Marul', icon: '🥬' },
+    { value: 'Ispanak', icon: '🥬' },
+
+    // Meyveler
     { value: 'Elma', icon: '🍎' },
+    { value: 'Armut', icon: '🍐' },
+    { value: 'Çilek', icon: '🍓' },
+    { value: 'Kiraz', icon: '🍒' },
+    { value: 'Üzüm', icon: '🍇' },
+    { value: 'Şeftali', icon: '🍑' },
+    { value: 'Kayısı', icon: '🟠' },
+    { value: 'Erik', icon: '🟣' },
+    { value: 'Karpuz', icon: '🍉' },
+    { value: 'Kavun', icon: '🍈' },
+
+    // Yağlı tohumlar
+    { value: 'Ayçiçeği', icon: '🌻' },
+    { value: 'Kanola', icon: '🌾' },
+    { value: 'Susam', icon: '🟤' },
+
+    // Endüstriyel ürünler
+    { value: 'Pamuk', icon: '☁️' },
+    { value: 'İplik Bitkileri', icon: '🧵' },
+
+    // Bahçe ve Diğer
+    { value: 'Zeytin', icon: '🫒' },
+    { value: 'Nar', icon: '🔴' },
+    { value: 'İncir', icon: '🟤' },
+    { value: 'Çay', icon: '🍃' },
+    { value: 'Kahve', icon: '☕' },
+    { value: 'Çiçek', icon: '🌹' },
+    { value: 'Ot (Saman)', icon: '🌱' },
 ];
 
 export default function EditFieldScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
+    const { isDark, colors } = useTheme();
+    const styles = createStyles(colors, isDark);
 
     const [name, setName] = useState('');
     const [location, setLocation] = useState('');
@@ -145,12 +189,19 @@ export default function EditFieldScreen() {
     };
 
     const handleSubmit = async () => {
+        const normalizedArea = area.trim().replace(',', '.');
+        const areaValue = normalizedArea ? Number.parseFloat(normalizedArea) : null;
+
         if (!name.trim()) {
             Alert.alert('Uyarı', 'Tarla adı zorunludur');
             return;
         }
         if (!selectedCropType) {
             Alert.alert('Uyarı', 'Ürün türü seçiniz');
+            return;
+        }
+        if (normalizedArea && !Number.isFinite(areaValue)) {
+            Alert.alert('Uyarı', 'Alan sayısal olmalıdır');
             return;
         }
 
@@ -169,7 +220,7 @@ export default function EditFieldScreen() {
                     location: location.trim(),
                     soilType: selectedSoilType || 'Bilmiyorum',
                     cropType: selectedCropType,
-                    area: area ? parseFloat(area) : null,
+                    area: areaValue,
                     latitude: coords?.latitude || null,
                     longitude: coords?.longitude || null
                 })
@@ -195,7 +246,7 @@ export default function EditFieldScreen() {
     if (fetching) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#16A34A" />
+                <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>Tarla bilgileri yükleniyor...</Text>
             </View>
         );
@@ -207,7 +258,7 @@ export default function EditFieldScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>✏️ Tarla Düzenle</Text>
                     <View style={{ width: 24 }} />
@@ -221,7 +272,7 @@ export default function EditFieldScreen() {
                         <TextInput
                             style={styles.input}
                             placeholder="Örn: Kuzey Tarla"
-                            placeholderTextColor="#64748b"
+                            placeholderTextColor={colors.textTertiary}
                             value={name}
                             onChangeText={setName}
                         />
@@ -296,10 +347,11 @@ export default function EditFieldScreen() {
                     {/* Alan (Dönüm) */}
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Alan (Dönüm)</Text>
+                        <Text style={styles.labelHint}>1 dönüm = 1000 m²</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Örn: 5"
-                            placeholderTextColor="#64748b"
+                            placeholder="Örn: 5.5"
+                            placeholderTextColor={colors.textTertiary}
                             value={area}
                             onChangeText={setArea}
                             keyboardType="numeric"
@@ -391,192 +443,209 @@ export default function EditFieldScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#0f172a',
-    },
-    container: {
-        flex: 1,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#0f172a',
-    },
-    loadingText: {
-        color: '#94a3b8',
-        marginTop: 16,
-        fontSize: 16,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 20,
-        paddingTop: 10,
-    },
-    backButton: {
-        padding: 4,
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    form: {
-        padding: 20,
-    },
-    inputGroup: {
-        marginBottom: 24,
-    },
-    label: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#fff',
-        marginBottom: 8,
-    },
-    labelHint: {
-        fontSize: 13,
-        color: '#64748b',
-        marginBottom: 12,
-    },
-    input: {
-        backgroundColor: '#1e293b',
-        borderRadius: 12,
-        padding: 16,
-        fontSize: 16,
-        color: '#fff',
-        borderWidth: 1,
-        borderColor: '#334155',
-    },
-    locationButtons: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 16,
-    },
-    locationOptionButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        backgroundColor: '#1e293b',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#334155',
-    },
-    locationOptionText: {
-        color: '#fff',
-        fontWeight: '500',
-        fontSize: 14,
-    },
-    selectedLocationCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        backgroundColor: '#14532d',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#16A34A',
-    },
-    selectedLocationIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#166534',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    selectedLocationContent: {
-        flex: 1,
-    },
-    selectedLocationLabel: {
-        fontSize: 12,
-        color: '#86efac',
-        marginBottom: 4,
-    },
-    selectedLocationText: {
-        fontSize: 14,
-        color: '#fff',
-        fontWeight: '500',
-    },
-    selectedLocationCoords: {
-        fontSize: 11,
-        color: '#86efac',
-        marginTop: 4,
-    },
-    clearLocationButton: {
-        padding: 4,
-    },
-    noLocationCard: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        backgroundColor: '#1e293b',
-        padding: 24,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#334155',
-        borderStyle: 'dashed',
-    },
-    noLocationText: {
-        color: '#64748b',
-        fontSize: 14,
-    },
-    optionsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 10,
-    },
-    optionButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: '#1e293b',
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#334155',
-    },
-    optionButtonSelected: {
-        backgroundColor: '#16A34A',
-        borderColor: '#16A34A',
-    },
-    optionButtonUnknown: {
-        borderColor: '#F59E0B',
-        borderStyle: 'dashed',
-    },
-    optionIcon: {
-        fontSize: 16,
-    },
-    optionText: {
-        color: '#94a3b8',
-        fontWeight: '500',
-    },
-    optionTextSelected: {
-        color: '#fff',
-    },
-    submitButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        backgroundColor: '#3B82F6',
-        padding: 18,
-        borderRadius: 12,
-        marginTop: 20,
-    },
-    submitButtonDisabled: {
-        opacity: 0.6,
-    },
-    submitButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-});
+const createStyles = (colors: {
+    background: string;
+    surface: string;
+    surfaceLight: string;
+    text: string;
+    textSecondary: string;
+    textTertiary: string;
+    primary: string;
+    border: string;
+    borderLight: string;
+}, isDark: boolean) => {
+    const successSurface = isDark ? '#14532d' : '#ECFDF5';
+    const successBorder = isDark ? colors.primary : '#86efac';
+    const successText = isDark ? '#86efac' : '#166534';
+    const successIconBg = isDark ? '#166534' : '#BBF7D0';
+
+    return StyleSheet.create({
+        safeArea: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        container: {
+            flex: 1,
+        },
+        loadingContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: colors.background,
+        },
+        loadingText: {
+            color: colors.textSecondary,
+            marginTop: 16,
+            fontSize: 16,
+        },
+        header: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 20,
+            paddingTop: 10,
+        },
+        backButton: {
+            padding: 4,
+        },
+        headerTitle: {
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: colors.text,
+        },
+        form: {
+            padding: 20,
+        },
+        inputGroup: {
+            marginBottom: 24,
+        },
+        label: {
+            fontSize: 16,
+            fontWeight: '600',
+            color: colors.text,
+            marginBottom: 8,
+        },
+        labelHint: {
+            fontSize: 13,
+            color: colors.textSecondary,
+            marginBottom: 12,
+        },
+        input: {
+            backgroundColor: colors.surface,
+            borderRadius: 12,
+            padding: 16,
+            fontSize: 16,
+            color: colors.text,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        locationButtons: {
+            flexDirection: 'row',
+            gap: 12,
+            marginBottom: 16,
+        },
+        locationOptionButton: {
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            backgroundColor: colors.surface,
+            padding: 16,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        locationOptionText: {
+            color: colors.text,
+            fontWeight: '500',
+            fontSize: 14,
+        },
+        selectedLocationCard: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            backgroundColor: successSurface,
+            padding: 16,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: successBorder,
+        },
+        selectedLocationIcon: {
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: successIconBg,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        selectedLocationContent: {
+            flex: 1,
+        },
+        selectedLocationLabel: {
+            fontSize: 12,
+            color: successText,
+            marginBottom: 4,
+        },
+        selectedLocationText: {
+            fontSize: 14,
+            color: isDark ? '#fff' : colors.text,
+            fontWeight: '500',
+        },
+        selectedLocationCoords: {
+            fontSize: 11,
+            color: successText,
+            marginTop: 4,
+        },
+        clearLocationButton: {
+            padding: 4,
+        },
+        noLocationCard: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            backgroundColor: colors.surface,
+            padding: 24,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.borderLight,
+            borderStyle: 'dashed',
+        },
+        noLocationText: {
+            color: colors.textSecondary,
+            fontSize: 14,
+        },
+        optionsContainer: {
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 10,
+        },
+        optionButton: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            backgroundColor: colors.surface,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        optionButtonSelected: {
+            backgroundColor: colors.primary,
+            borderColor: colors.primary,
+        },
+        optionButtonUnknown: {
+            borderColor: '#F59E0B',
+            borderStyle: 'dashed',
+        },
+        optionIcon: {
+            fontSize: 16,
+        },
+        optionText: {
+            color: colors.textSecondary,
+            fontWeight: '500',
+        },
+        optionTextSelected: {
+            color: '#fff',
+        },
+        submitButton: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            backgroundColor: colors.primary,
+            padding: 18,
+            borderRadius: 12,
+            marginTop: 20,
+        },
+        submitButtonDisabled: {
+            opacity: 0.6,
+        },
+        submitButtonText: {
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 'bold',
+        },
+    });
+};

@@ -14,6 +14,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config';
+import { useTheme } from '../../context/ThemeContext';
 
 interface WeatherData {
     temperature: number;
@@ -28,9 +29,23 @@ interface Field {
     cropType: string;
     soilType: string;
     location: string;
+    area?: number;
     irrigationTime?: string;
-    waterAmount?: number;
+    waterAmount?: number; // total liters
+    waterPerM2?: number;
+    waterLevel?: string;
     note?: string;
+    hasSchedule?: boolean;
+}
+
+interface ScheduleItem {
+    id: string;
+    date: string;
+    recommendedTime?: string;
+    waterAmount: number; // L/m²
+    weatherCondition?: string;
+    note?: string;
+    status?: string;
 }
 
 interface LocationData {
@@ -44,6 +59,7 @@ interface LocationData {
 
 export default function HomeScreen() {
     const { user } = useAuth() as any;
+    const { colors } = useTheme();
     const router = useRouter();
     const [fields, setFields] = useState<Field[]>([]);
     const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -128,13 +144,58 @@ export default function HomeScreen() {
             });
             if (response.ok) {
                 const data = await response.json();
-                // Her tarla için sulama önerisi ekle
-                const fieldsWithRecommendations = (Array.isArray(data) ? data : []).map((field: Field) => ({
-                    ...field,
-                    irrigationTime: calculateIrrigationTime(field),
-                    waterAmount: calculateWaterAmount(field),
-                    note: generateNote(field)
-                }));
+                const fieldsList = Array.isArray(data) ? data : [];
+
+                const todayKey = formatDate(new Date());
+
+                const fieldsWithRecommendations = await Promise.all(
+                    fieldsList.map(async (field: Field) => {
+                        try {
+                            const schedulesResponse = await fetch(
+                                `${API_URL}/fields/${field.id}`,
+                                { headers: { 'Authorization': `Bearer ${token}` } }
+                            );
+
+                            if (schedulesResponse.ok) {
+                                const fieldData = await schedulesResponse.json();
+                                const schedules: ScheduleItem[] = fieldData.schedules || [];
+
+                                const todaySchedule = schedules.find(s =>
+                                    formatDate(new Date(s.date)) === todayKey && s.status === 'pending'
+                                );
+
+                                if (todaySchedule) {
+                                    const areaM2 = (field.area ?? 1) * 1000;
+                                    const totalLiters = Math.round((todaySchedule.waterAmount || 0) * areaM2);
+                                    const perM2 = areaM2 > 0 ? totalLiters / areaM2 : totalLiters;
+
+                                    return {
+                                        ...field,
+                                        irrigationTime: todaySchedule.recommendedTime || '06:00-08:00',
+                                        waterAmount: totalLiters,
+                                        waterPerM2: Number(perM2.toFixed(1)),
+                                        waterLevel: getWaterLevelLabel(perM2),
+                                        note: todaySchedule.note || todaySchedule.weatherCondition || 'Bugün sulama önerisi mevcut.',
+                                        hasSchedule: true
+                                    } as Field;
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`Schedule fetch error for field ${field.id}:`, error);
+                        }
+
+                        return {
+                            ...field,
+                            irrigationTime: '-',
+                            waterAmount: 0,
+                            waterPerM2: 0,
+                            waterLevel: 'Yok',
+                            note: 'Bugün için sulama önerisi yok.',
+                            hasSchedule: false
+                        } as Field;
+                    })
+                );
+
                 setFields(fieldsWithRecommendations);
             }
         } catch (error) {
@@ -142,37 +203,16 @@ export default function HomeScreen() {
         }
     };
 
-    const calculateIrrigationTime = (field: Field): string => {
-        // Basit öneri mantığı - gerçek uygulamada AI kullanılabilir
-        const cropTimes: { [key: string]: string } = {
-            'Buğday': '06:00',
-            'Mısır': '05:30',
-            'Domates': '07:00',
-            'default': '06:00'
-        };
-        return cropTimes[field.cropType] || cropTimes['default'];
+    const formatDate = (date: Date): string => {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     };
 
-    const calculateWaterAmount = (field: Field): number => {
-        // Basit hesaplama - gerçek uygulamada toprak, hava durumu vb. kullanılır
-        const baseAmount = 500; // Litre
-        const soilFactor: { [key: string]: number } = {
-            'Kumlu': 1.3,
-            'Killi': 0.8,
-            'Tınlı': 1.0,
-            'default': 1.0
-        };
-        return Math.round(baseAmount * (soilFactor[field.soilType] || soilFactor['default']));
-    };
-
-    const generateNote = (field: Field): string => {
-        const notes = [
-            'Toprak nemi optimal seviyede',
-            'Yarın yağış bekleniyor, sulamayı azaltın',
-            'Sıcak hava nedeniyle ekstra sulama önerilir',
-            'Normal sulama programına devam edin'
-        ];
-        return notes[Math.floor(Math.random() * notes.length)];
+    const getWaterLevelLabel = (perM2: number) => {
+        if (perM2 <= 2) return 'Çok Az';
+        if (perM2 <= 4) return 'Az';
+        if (perM2 <= 6) return 'Orta';
+        if (perM2 <= 8) return 'Yüksek';
+        return 'Çok Yüksek';
     };
 
     const onRefresh = async () => {
@@ -183,32 +223,32 @@ export default function HomeScreen() {
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <ActivityIndicator size="large" color="#16A34A" />
-                <Text style={styles.loadingText}>Veriler yükleniyor...</Text>
+                <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Veriler yükleniyor...</Text>
             </View>
         );
     }
 
     return (
         <ScrollView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: colors.background }]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
             {/* Konum ve Tarih Başlığı */}
             <View style={styles.header}>
                 <View style={styles.locationContainer}>
-                    <Ionicons name="location" size={20} color="#16A34A" />
-                    <Text style={styles.locationText}>
+                    <Ionicons name="location" size={20} color={colors.primary} />
+                    <Text style={[styles.locationText, { color: colors.primary }]}>
                         {location?.district ? `${location.district}, ` : ''}{location?.city || 'Konum alınıyor...'}
                     </Text>
                 </View>
-                <Text style={styles.dateText}>{currentDate}</Text>
-                <Text style={styles.greeting}>Merhaba, {user?.name || 'Çiftçi'}</Text>
+                <Text style={[styles.dateText, { color: colors.textSecondary }]}>{currentDate}</Text>
+                <Text style={[styles.greeting, { color: colors.text }]}>Merhaba, {user?.name || 'Çiftçi'}</Text>
             </View>
 
             {/* Hava Durumu Kartı */}
-            <View style={styles.weatherCard}>
+            <View style={[styles.weatherCard, { backgroundColor: colors.surface }]}>
                 <View style={styles.weatherMain}>
                     <Ionicons
                         name={weather?.condition === 'Güneşli' ? 'sunny' : 'partly-sunny'}
@@ -216,66 +256,78 @@ export default function HomeScreen() {
                         color="#F59E0B"
                     />
                     <View style={styles.weatherInfo}>
-                        <Text style={styles.temperature}>{weather?.temperature || '--'}°C</Text>
-                        <Text style={styles.weatherCondition}>{weather?.condition || 'Yükleniyor...'}</Text>
+                        <Text style={[styles.temperature, { color: colors.text }]}>{weather?.temperature || '--'}°C</Text>
+                        <Text style={[styles.weatherCondition, { color: colors.textSecondary }]}>{weather?.condition || 'Yükleniyor...'}</Text>
                     </View>
                 </View>
                 <View style={styles.weatherDetails}>
                     <View style={styles.weatherDetail}>
                         <Ionicons name="water-outline" size={16} color="#3B82F6" />
-                        <Text style={styles.weatherDetailText}>Nem: %{weather?.humidity || '--'}</Text>
+                        <Text style={[styles.weatherDetailText, { color: colors.textSecondary }]}>Nem: %{weather?.humidity || '--'}</Text>
                     </View>
                     <View style={styles.weatherDetail}>
                         <Ionicons name="leaf-outline" size={16} color="#16A34A" />
-                        <Text style={styles.weatherDetailText}>{weather?.description || ''}</Text>
+                        <Text style={[styles.weatherDetailText, { color: colors.textSecondary }]}>{weather?.description || ''}</Text>
                     </View>
                 </View>
             </View>
 
             {/* Bugünkü Sulama Önerileri */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>💧 Bugünkü Sulama Önerileri</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>💧 Bugünkü Sulama Önerileri</Text>
 
                 {fields.length === 0 ? (
-                    <View style={styles.emptyState}>
+                    <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
                         <Ionicons name="leaf-outline" size={48} color="#9CA3AF" />
-                        <Text style={styles.emptyStateText}>Henüz tarla eklemediniz</Text>
-                        <Text style={styles.emptyStateSubtext}>
+                        <Text style={[styles.emptyStateText, { color: colors.text }]}>Henüz tarla eklemediniz</Text>
+                        <Text style={[styles.emptyStateSubtext, { color: colors.textSecondary }]}>
                             Sulama önerilerini görmek için tarla ekleyin
                         </Text>
                     </View>
                 ) : (
                     fields.map((field) => (
-                        <View key={field.id} style={styles.fieldCard}>
+                        <View key={field.id} style={[styles.fieldCard, { backgroundColor: colors.surface }]}>
                             <View style={styles.fieldHeader}>
                                 <View style={styles.fieldTitleRow}>
-                                    <Ionicons name="leaf" size={24} color="#16A34A" />
-                                    <Text style={styles.fieldName}>{field.name}</Text>
+                                    <Ionicons name="leaf" size={24} color={colors.primary} />
+                                    <Text style={[styles.fieldName, { color: colors.text }]}>{field.name}</Text>
                                 </View>
-                                <Text style={styles.fieldCrop}>{field.cropType}</Text>
+                                <Text style={[styles.fieldCrop, { color: colors.primary, backgroundColor: colors.primaryDark }]}>{field.cropType}</Text>
                             </View>
 
                             <View style={styles.fieldRecommendations}>
-                                <View style={styles.recommendationItem}>
+                                <View style={[styles.recommendationItem, { backgroundColor: colors.inputBackground }]}>
                                     <Ionicons name="time-outline" size={20} color="#3B82F6" />
                                     <View>
-                                        <Text style={styles.recommendationLabel}>Önerilen Saat</Text>
-                                        <Text style={styles.recommendationValue}>{field.irrigationTime}</Text>
+                                        <Text style={[styles.recommendationLabel, { color: colors.textSecondary }]}>Önerilen Saat</Text>
+                                        <Text style={[styles.recommendationValue, { color: colors.text }]}>{field.irrigationTime}</Text>
                                     </View>
                                 </View>
 
-                                <View style={styles.recommendationItem}>
+                                <View style={[styles.recommendationItem, { backgroundColor: colors.inputBackground }]}>
                                     <Ionicons name="water" size={20} color="#06B6D4" />
                                     <View>
-                                        <Text style={styles.recommendationLabel}>Su Miktarı</Text>
-                                        <Text style={styles.recommendationValue}>{field.waterAmount} L</Text>
+                                        <Text style={[styles.recommendationLabel, { color: colors.textSecondary }]}>Su Miktarı</Text>
+                                        {field.hasSchedule ? (
+                                            <View>
+                                                <Text style={[styles.recommendationValue, { color: colors.text }]}>
+                                                    {field.waterLevel} • {field.waterAmount} L
+                                                </Text>
+                                                <Text style={[styles.recommendationSubValue, { color: colors.textSecondary }]}>
+                                                    ({field.waterPerM2} L/m²)
+                                                </Text>
+                                            </View>
+                                        ) : (
+                                            <Text style={[styles.recommendationValue, { color: colors.text }]}>Sulama yok</Text>
+                                        )}
                                     </View>
                                 </View>
                             </View>
 
-                            <View style={styles.noteContainer}>
+                            <View style={[styles.noteContainer, { backgroundColor: colors.surfaceLight }]}
+                            >
                                 <Ionicons name="information-circle-outline" size={16} color="#F59E0B" />
-                                <Text style={styles.noteText}>{field.note}</Text>
+                                <Text style={[styles.noteText, { color: colors.textSecondary }]}>{field.note}</Text>
                             </View>
                         </View>
                     ))
@@ -284,36 +336,36 @@ export default function HomeScreen() {
 
             {/* Hızlı İşlemler */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>⚡ Hızlı İşlemler</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>⚡ Hızlı İşlemler</Text>
                 <View style={styles.quickActions}>
                     <TouchableOpacity
-                        style={styles.actionButton}
+                        style={[styles.actionButton, { backgroundColor: colors.surface }]}
                         onPress={() => router.push('/soil-analysis' as any)}
                     >
                         <View style={[styles.actionIcon, { backgroundColor: '#8B5CF620' }]}>
                             <Ionicons name="scan" size={24} color="#8B5CF6" />
                         </View>
-                        <Text style={styles.actionText}>Toprak Analizi</Text>
+                        <Text style={[styles.actionText, { color: colors.text }]}>Toprak Analizi</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.actionButton}
+                        style={[styles.actionButton, { backgroundColor: colors.surface }]}
                         onPress={() => router.push('/add-field' as any)}
                     >
                         <View style={[styles.actionIcon, { backgroundColor: '#D1FAE5' }]}>
                             <Ionicons name="add-circle" size={24} color="#16A34A" />
                         </View>
-                        <Text style={styles.actionText}>Tarla Ekle</Text>
+                        <Text style={[styles.actionText, { color: colors.text }]}>Tarla Ekle</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.actionButton}
+                        style={[styles.actionButton, { backgroundColor: colors.surface }]}
                         onPress={() => router.push('/(tabs)/calendar' as any)}
                     >
                         <View style={[styles.actionIcon, { backgroundColor: '#DBEAFE' }]}>
                             <Ionicons name="calendar" size={24} color="#3B82F6" />
                         </View>
-                        <Text style={styles.actionText}>Takvim</Text>
+                        <Text style={[styles.actionText, { color: colors.text }]}>Takvim</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -466,19 +518,24 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 6,
         backgroundColor: '#0f172a',
-        padding: 12,
+        padding: 8,
         borderRadius: 12,
     },
     recommendationLabel: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#94a3b8',
     },
     recommendationValue: {
-        fontSize: 16,
+        fontSize: 13,
         fontWeight: '600',
         color: '#fff',
+    },
+    recommendationSubValue: {
+        fontSize: 10,
+        color: '#94a3b8',
+        marginTop: 1,
     },
     noteContainer: {
         flexDirection: 'row',

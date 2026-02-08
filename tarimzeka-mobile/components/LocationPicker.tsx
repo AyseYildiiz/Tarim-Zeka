@@ -90,16 +90,19 @@ export default function LocationPicker({
     const [searchError, setSearchError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (visible && !initialLocation) {
+        if (!visible) return;
+
+        if (!initialLocation) {
             getCurrentLocation();
-        } else if (visible && initialLocation) {
-            setRegion(prev => ({
-                ...prev,
-                latitude: initialLocation.latitude,
-                longitude: initialLocation.longitude,
-            }));
-            getAddressFromCoords(initialLocation.latitude, initialLocation.longitude);
+            return;
         }
+
+        setRegion(prev => ({
+            ...prev,
+            latitude: initialLocation.latitude,
+            longitude: initialLocation.longitude,
+        }));
+        getAddressFromCoords(initialLocation.latitude, initialLocation.longitude);
     }, [visible, initialLocation]);
 
     useEffect(() => {
@@ -110,8 +113,8 @@ export default function LocationPicker({
         };
     }, []);
 
-    const searchLocation = async (query: string) => {
-        if (query.length < 2) return;
+    const searchLocation = async (query: string): Promise<SearchResult[]> => {
+        if (query.length < 2) return [];
 
         setSearching(true);
         setSearchError(null);
@@ -132,21 +135,22 @@ export default function LocationPicker({
                 const results = await response.json();
                 if (results.length > 0) {
                     setSearchResults(results);
+                    return results;
                 } else {
-                    fallbackSearch(query);
+                    return fallbackSearch(query);
                 }
             } else {
-                fallbackSearch(query);
+                return fallbackSearch(query);
             }
         } catch (error) {
             console.error('Search error:', error);
-            fallbackSearch(query);
+            return fallbackSearch(query);
         } finally {
             setSearching(false);
         }
     };
 
-    const fallbackSearch = (query: string) => {
+    const fallbackSearch = (query: string): SearchResult[] => {
         const lowerQuery = query.toLowerCase().trim();
         const results = POPULAR_CITIES.filter(city =>
             city.title.toLowerCase().includes(lowerQuery) ||
@@ -159,6 +163,8 @@ export default function LocationPicker({
             setSearchResults([]);
             setSearchError(`"${query}" için sonuç bulunamadı`);
         }
+
+        return results;
     };
 
     const debouncedSearch = useCallback((query: string) => {
@@ -185,6 +191,19 @@ export default function LocationPicker({
             setShowResults(true);
             fallbackSearch(text);
             debouncedSearch(text);
+        }
+    };
+
+    const handleSearchSubmit = async () => {
+        if (searchQuery.trim().length < 2) return;
+
+        setShowResults(true);
+        const results = searchResults.length > 0
+            ? searchResults
+            : await searchLocation(searchQuery.trim());
+
+        if (results && results.length > 0) {
+            handleSelectSearchResult(results[0]);
         }
     };
 
@@ -240,6 +259,19 @@ export default function LocationPicker({
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') return;
+
+            const lastKnown = await Location.getLastKnownPositionAsync({});
+            if (lastKnown?.coords) {
+                const quickRegion = {
+                    latitude: lastKnown.coords.latitude,
+                    longitude: lastKnown.coords.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                };
+                setRegion(quickRegion);
+                mapRef.current?.animateToRegion(quickRegion, 300);
+                await getAddressFromCoords(lastKnown.coords.latitude, lastKnown.coords.longitude);
+            }
 
             const location = await Location.getCurrentPositionAsync({});
             const newRegion = {
@@ -425,6 +457,7 @@ export default function LocationPicker({
                             value={searchQuery}
                             onChangeText={handleSearchChange}
                             onFocus={handleSearchFocus}
+                            onSubmitEditing={handleSearchSubmit}
                             returnKeyType="search"
                             autoCorrect={false}
                         />
@@ -544,11 +577,18 @@ export default function LocationPicker({
                                     longitude: selectedLocation.longitude,
                                 }}
                                 draggable
+                                pinColor="#16A34A"
                                 onDragEnd={(e) => {
                                     const { latitude, longitude } = e.nativeEvent.coordinate;
                                     getAddressFromCoords(latitude, longitude);
                                 }}
-                            />
+                            >
+                                <View style={styles.markerContainer}>
+                                    <View style={styles.markerInner}>
+                                        <Ionicons name="location" size={20} color="#fff" />
+                                    </View>
+                                </View>
+                            </Marker>
                         )}
                     </MapView>
 
@@ -909,6 +949,25 @@ const styles = StyleSheet.create({
     noSelectionText: {
         color: '#64748b',
         fontSize: 14,
+    },
+    markerContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    markerInner: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#16A34A',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3,
+        elevation: 5,
     },
     confirmButton: {
         flexDirection: 'row',

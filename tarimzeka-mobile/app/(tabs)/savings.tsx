@@ -10,6 +10,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../../config';
+import { useTheme } from '../../context/ThemeContext';
 
 interface SavingsData {
     totalSaved: number;
@@ -19,6 +20,7 @@ interface SavingsData {
 }
 
 export default function SavingsScreen() {
+    const { colors } = useTheme();
     const [savings, setSavings] = useState<SavingsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -52,7 +54,7 @@ export default function SavingsScreen() {
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <ActivityIndicator size="large" color="#16A34A" />
             </View>
         );
@@ -60,42 +62,47 @@ export default function SavingsScreen() {
 
     return (
         <ScrollView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: colors.background }]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Tasarruf Özeti</Text>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>Tasarruf Özeti</Text>
             </View>
 
-            <View style={styles.totalCard}>
+            <View style={[styles.totalCard, { backgroundColor: colors.surface }]}
+            >
                 <Ionicons name="wallet-outline" size={48} color="#16A34A" />
-                <Text style={styles.totalAmount}>₺{savings?.totalSaved || 0}</Text>
-                <Text style={styles.totalLabel}>Toplam Tasarruf</Text>
+                <Text style={[styles.totalAmount, { color: colors.primary }]}>₺{savings?.totalSaved || 0}</Text>
+                <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Toplam Tasarruf</Text>
             </View>
 
             <View style={styles.statsContainer}>
-                <View style={styles.statCard}>
+                <View style={[styles.statCard, { backgroundColor: colors.surface }]}
+                >
                     <Ionicons name="water-outline" size={32} color="#3B82F6" />
-                    <Text style={styles.statValue}>{savings?.waterSaved || 0} L</Text>
-                    <Text style={styles.statLabel}>Su Tasarrufu</Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>{savings?.waterSaved || 0} L</Text>
+                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Su Tasarrufu</Text>
                 </View>
 
-                <View style={styles.statCard}>
+                <View style={[styles.statCard, { backgroundColor: colors.surface }]}
+                >
                     <Ionicons name="leaf-outline" size={32} color="#16A34A" />
-                    <Text style={styles.statValue}>{savings?.fertilizerSaved || 0} kg</Text>
-                    <Text style={styles.statLabel}>Gübre Tasarrufu</Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>{savings?.fertilizerSaved || 0} kg</Text>
+                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Gübre Tasarrufu</Text>
                 </View>
 
-                <View style={styles.statCard}>
+                <View style={[styles.statCard, { backgroundColor: colors.surface }]}
+                >
                     <Ionicons name="flash-outline" size={32} color="#F59E0B" />
-                    <Text style={styles.statValue}>{savings?.energySaved || 0} kWh</Text>
-                    <Text style={styles.statLabel}>Enerji Tasarrufu</Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>{savings?.energySaved || 0} kWh</Text>
+                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Enerji Tasarrufu</Text>
                 </View>
             </View>
 
-            <View style={styles.infoCard}>
-                <Ionicons name="information-circle-outline" size={24} color="#94a3b8" />
-                <Text style={styles.infoText}>
+            <View style={[styles.infoCard, { backgroundColor: colors.surface }]}
+            >
+                <Ionicons name="information-circle-outline" size={24} color={colors.textSecondary} />
+                <Text style={[styles.infoText, { color: colors.textSecondary }]}>
                     Tasarruf verileri, tarla aktivitelerinize göre hesaplanmaktadır.
                 </Text>
             </View>

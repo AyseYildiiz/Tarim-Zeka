@@ -1,7 +1,8 @@
 import "react-native-gesture-handler";
-import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import { DarkTheme, DefaultTheme, ThemeProvider as RNThemeProvider } from "@react-navigation/native";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { ThemeProvider, useTheme } from "../context/ThemeContext";
 import * as SplashScreen from "expo-splash-screen";
 import { ActivityIndicator, View } from "react-native";
 import { useEffect } from "react";
@@ -10,6 +11,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { token, isLoading } = useAuth();
+  const { isDark, themeLoaded, colors } = useTheme();
   const router = useRouter();
   const segments = useSegments();
 
@@ -23,7 +25,11 @@ function RootNavigator() {
     if (isLoading) return;
 
     // Auth sayfaları: login ve register
-    const inAuthPage = segments[0] === "login" || segments[0] === "register";
+    const inAuthPage =
+      segments[0] === "login" ||
+      segments[0] === "register" ||
+      segments[0] === "forgot-password" ||
+      segments[0] === "reset-password";
 
     console.log("🔄 Segment:", segments[0], "Token:", token, "InAuthPage:", inAuthPage);
 
@@ -42,25 +48,27 @@ function RootNavigator() {
     }
   }, [token, isLoading, segments]);
 
-  if (isLoading) {
+  if (isLoading || !themeLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#000" }}>
-        <ActivityIndicator size="large" color="#16A34A" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <ThemeProvider value={DarkTheme}>
+    <RNThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <Slot />
-    </ThemeProvider>
+    </RNThemeProvider>
   );
 }
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

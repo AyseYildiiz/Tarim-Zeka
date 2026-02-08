@@ -1,13 +1,19 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function TabLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#16A34A',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+        },
         headerShown: false,
       }}>
       <Tabs.Screen
@@ -43,6 +49,13 @@ export default function TabLayout() {
         options={{
           title: 'Bildirimler',
           tabBarIcon: ({ color, size }) => <Ionicons name="notifications" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Ayarlar',
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />,
         }}
       />
     </Tabs>

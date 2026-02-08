@@ -11,6 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../../config';
+import { useTheme } from '../../context/ThemeContext';
 
 interface Notification {
     id: string;
@@ -23,6 +24,7 @@ interface Notification {
 }
 
 export default function NotificationsScreen() {
+    const { colors } = useTheme();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -35,68 +37,75 @@ export default function NotificationsScreen() {
         try {
             const token = await AsyncStorage.getItem('token');
 
-            // API'den bildirimleri çek (şimdilik mock data)
-            // const response = await fetch(`${API_URL}/notifications`, {...});
+            if (!token) {
+                setNotifications([]);
+                setLoading(false);
+                return;
+            }
 
-            // Mock data
-            const mockNotifications: Notification[] = [
-                {
-                    id: '1',
-                    type: 'rain',
-                    title: '🌧️ Yağış Uyarısı',
-                    message: 'Yarın öğleden sonra yağış bekleniyor. Sulama planınızı gözden geçirin.',
-                    time: '2 saat önce',
-                    read: false,
-                },
-                {
-                    id: '2',
-                    type: 'irrigation',
-                    title: '💧 Sulama Zamanı',
-                    message: 'Kuzey Tarla için sulama saati yaklaşıyor.',
-                    time: '3 saat önce',
-                    read: false,
-                    fieldName: 'Kuzey Tarla'
-                },
-                {
-                    id: '3',
-                    type: 'success',
-                    title: '✅ Sulama Tamamlandı',
-                    message: 'Güney Bahçe sulaması başarıyla tamamlandı.',
-                    time: '5 saat önce',
-                    read: true,
-                    fieldName: 'Güney Bahçe'
-                },
-                {
-                    id: '4',
-                    type: 'warning',
-                    title: '⚠️ Düşük Nem Uyarısı',
-                    message: 'Batı Tarla toprak nemi kritik seviyenin altına düştü.',
-                    time: '1 gün önce',
-                    read: true,
-                    fieldName: 'Batı Tarla'
-                },
-                {
-                    id: '5',
-                    type: 'info',
-                    title: 'ℹ️ Hava Durumu Güncellemesi',
-                    message: 'Önümüzdeki hafta sıcaklıklar mevsim normallerinin üzerinde olacak.',
-                    time: '1 gün önce',
-                    read: true,
-                },
-                {
-                    id: '6',
-                    type: 'irrigation',
-                    title: '💧 Sulama Hatırlatması',
-                    message: 'Yarın sabah 06:00\'da Kuzey Tarla için sulama planlandı.',
-                    time: '2 gün önce',
-                    read: true,
-                    fieldName: 'Kuzey Tarla'
-                },
-            ];
+            // Backend'den bildirimleri çek
+            const response = await fetch(`${API_URL}/notifications`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-            setNotifications(mockNotifications);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Backend verilerini UI formatına çevir
+            const formattedNotifications: Notification[] = data.map((notif: any) => {
+                // Bildirim türünü belirle
+                let type: Notification['type'] = 'info';
+                if (notif.type === 'irrigation') {
+                    type = 'irrigation';
+                } else if (notif.type === 'weather_warning' || notif.type === 'rain') {
+                    type = 'rain';
+                } else if (notif.type === 'warning') {
+                    type = 'warning';
+                } else if (notif.type === 'success') {
+                    type = 'success';
+                }
+
+                // Tarihi formatla
+                const date = new Date(notif.createdAt);
+                const now = new Date();
+                const diffMs = now.getTime() - date.getTime();
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                let timeText = 'az önce';
+                if (diffMins < 60) {
+                    timeText = `${diffMins} dakika önce`;
+                } else if (diffHours < 24) {
+                    timeText = `${diffHours} saat önce`;
+                } else if (diffDays < 7) {
+                    timeText = `${diffDays} gün önce`;
+                } else {
+                    timeText = date.toLocaleDateString('tr-TR');
+                }
+
+                return {
+                    id: notif.id,
+                    type,
+                    title: notif.title,
+                    message: notif.message,
+                    time: timeText,
+                    read: notif.isRead,
+                    fieldName: notif.fieldName
+                };
+            });
+
+            setNotifications(formattedNotifications);
         } catch (error) {
             console.error('Load notifications error:', error);
+            // Hata durumunda boş liste göster
+            setNotifications([]);
         } finally {
             setLoading(false);
         }
@@ -108,14 +117,60 @@ export default function NotificationsScreen() {
         setRefreshing(false);
     };
 
-    const markAsRead = (id: string) => {
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        );
+    const markAsRead = async (id: string) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+
+            await fetch(`${API_URL}/notifications/${id}/read`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            setNotifications(prev =>
+                prev.map(n => n.id === id ? { ...n, read: true } : n)
+            );
+        } catch (error) {
+            console.error('Mark as read error:', error);
+        }
     };
 
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    const markAllAsRead = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+
+            await fetch(`${API_URL}/notifications/mark-all/read`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        } catch (error) {
+            console.error('Mark all as read error:', error);
+        }
+    };
+
+    const deleteNotification = async (id: string) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+
+            await fetch(`${API_URL}/notifications/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            setNotifications(prev => prev.filter(n => n.id !== id));
+        } catch (error) {
+            console.error('Delete notification error:', error);
+        }
     };
 
     const getIconConfig = (type: Notification['type']) => {
@@ -138,29 +193,31 @@ export default function NotificationsScreen() {
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <ActivityIndicator size="large" color="#16A34A" />
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.headerTitle}>🔔 Bildirimler</Text>
+                    <Text style={[styles.headerTitle, { color: colors.text }]}>🔔 Bildirimler</Text>
                     {unreadCount > 0 && (
                         <View style={styles.badge}>
                             <Text style={styles.badgeText}>{unreadCount}</Text>
                         </View>
                     )}
                 </View>
-                {unreadCount > 0 && (
-                    <TouchableOpacity onPress={markAllAsRead}>
-                        <Text style={styles.markAllText}>Tümünü Okundu İşaretle</Text>
-                    </TouchableOpacity>
-                )}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {unreadCount > 0 && (
+                        <TouchableOpacity onPress={markAllAsRead}>
+                            <Text style={[styles.markAllText, { color: colors.primary }]}>Tümünü Okundu</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             <ScrollView
@@ -169,9 +226,9 @@ export default function NotificationsScreen() {
             >
                 {notifications.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Ionicons name="notifications-off-outline" size={64} color="#64748b" />
-                        <Text style={styles.emptyStateTitle}>Bildirim Yok</Text>
-                        <Text style={styles.emptyStateText}>
+                        <Ionicons name="notifications-off-outline" size={64} color={colors.textTertiary} />
+                        <Text style={[styles.emptyStateTitle, { color: colors.textSecondary }]}>Bildirim Yok</Text>
+                        <Text style={[styles.emptyStateText, { color: colors.textTertiary }]}>
                             Yeni bildirimler burada görünecek
                         </Text>
                     </View>
@@ -180,13 +237,17 @@ export default function NotificationsScreen() {
                         {/* Unread Notifications */}
                         {notifications.filter(n => !n.read).length > 0 && (
                             <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>Yeni</Text>
+                                <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>Yeni</Text>
                                 {notifications.filter(n => !n.read).map((notification) => {
                                     const iconConfig = getIconConfig(notification.type);
                                     return (
                                         <TouchableOpacity
                                             key={notification.id}
-                                            style={[styles.notificationCard, styles.unreadCard]}
+                                            style={[
+                                                styles.notificationCard,
+                                                styles.unreadCard,
+                                                { backgroundColor: colors.surface, borderLeftColor: colors.primary }
+                                            ]}
                                             onPress={() => markAsRead(notification.id)}
                                         >
                                             <View style={[styles.iconContainer, { backgroundColor: iconConfig.bg }]}>
@@ -197,19 +258,19 @@ export default function NotificationsScreen() {
                                                 />
                                             </View>
                                             <View style={styles.notificationContent}>
-                                                <Text style={styles.notificationTitle}>{notification.title}</Text>
-                                                <Text style={styles.notificationMessage}>{notification.message}</Text>
+                                                <Text style={[styles.notificationTitle, { color: colors.text }]}>{notification.title}</Text>
+                                                <Text style={[styles.notificationMessage, { color: colors.textSecondary }]}>{notification.message}</Text>
                                                 <View style={styles.notificationFooter}>
-                                                    <Text style={styles.notificationTime}>{notification.time}</Text>
+                                                    <Text style={[styles.notificationTime, { color: colors.textTertiary }]}>{notification.time}</Text>
                                                     {notification.fieldName && (
-                                                        <View style={styles.fieldTag}>
-                                                            <Ionicons name="leaf" size={12} color="#16A34A" />
-                                                            <Text style={styles.fieldTagText}>{notification.fieldName}</Text>
+                                                        <View style={[styles.fieldTag, { backgroundColor: colors.primaryDark }]}>
+                                                            <Ionicons name="leaf" size={12} color={colors.primary} />
+                                                            <Text style={[styles.fieldTagText, { color: colors.primary }]}>{notification.fieldName}</Text>
                                                         </View>
                                                     )}
                                                 </View>
                                             </View>
-                                            <View style={styles.unreadDot} />
+                                            <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />
                                         </TouchableOpacity>
                                     );
                                 })}
@@ -219,11 +280,20 @@ export default function NotificationsScreen() {
                         {/* Read Notifications */}
                         {notifications.filter(n => n.read).length > 0 && (
                             <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>Önceki</Text>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>Önceki</Text>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            notifications.filter(n => n.read).forEach(n => deleteNotification(n.id));
+                                        }}
+                                    >
+                                        <Text style={[styles.clearText, { color: colors.textSecondary }]}>Temizle</Text>
+                                    </TouchableOpacity>
+                                </View>
                                 {notifications.filter(n => n.read).map((notification) => {
                                     const iconConfig = getIconConfig(notification.type);
                                     return (
-                                        <View key={notification.id} style={styles.notificationCard}>
+                                        <View key={notification.id} style={[styles.notificationCard, { backgroundColor: colors.surface }]}>
                                             <View style={[styles.iconContainer, { backgroundColor: iconConfig.bg }]}>
                                                 <Ionicons
                                                     name={iconConfig.name as any}
@@ -232,22 +302,28 @@ export default function NotificationsScreen() {
                                                 />
                                             </View>
                                             <View style={styles.notificationContent}>
-                                                <Text style={[styles.notificationTitle, styles.readTitle]}>
+                                                <Text style={[styles.notificationTitle, styles.readTitle, { color: colors.textSecondary }]}>
                                                     {notification.title}
                                                 </Text>
-                                                <Text style={[styles.notificationMessage, styles.readMessage]}>
+                                                <Text style={[styles.notificationMessage, styles.readMessage, { color: colors.textTertiary }]}>
                                                     {notification.message}
                                                 </Text>
                                                 <View style={styles.notificationFooter}>
-                                                    <Text style={styles.notificationTime}>{notification.time}</Text>
+                                                    <Text style={[styles.notificationTime, { color: colors.textTertiary }]}>{notification.time}</Text>
                                                     {notification.fieldName && (
-                                                        <View style={styles.fieldTag}>
-                                                            <Ionicons name="leaf" size={12} color="#16A34A" />
-                                                            <Text style={styles.fieldTagText}>{notification.fieldName}</Text>
+                                                        <View style={[styles.fieldTag, { backgroundColor: colors.primaryDark }]}>
+                                                            <Ionicons name="leaf" size={12} color={colors.primary} />
+                                                            <Text style={[styles.fieldTagText, { color: colors.primary }]}>{notification.fieldName}</Text>
                                                         </View>
                                                     )}
                                                 </View>
                                             </View>
+                                            <TouchableOpacity
+                                                onPress={() => deleteNotification(notification.id)}
+                                                style={styles.deleteButton}
+                                            >
+                                                <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
+                                            </TouchableOpacity>
                                         </View>
                                     );
                                 })}
@@ -312,12 +388,22 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingTop: 0,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
     sectionTitle: {
         fontSize: 14,
         color: '#64748b',
         fontWeight: '600',
-        marginBottom: 12,
         textTransform: 'uppercase',
+    },
+    clearText: {
+        fontSize: 12,
+        color: '#94a3b8',
+        textDecorationLine: 'underline',
     },
     notificationCard: {
         flexDirection: 'row',
@@ -381,6 +467,10 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: '#16A34A',
     },
+    deleteButton: {
+        padding: 8,
+        marginLeft: 12,
+    },
     unreadDot: {
         width: 10,
         height: 10,
@@ -404,5 +494,10 @@ const styles = StyleSheet.create({
         color: '#64748b',
         marginTop: 8,
         textAlign: 'center',
+    },
+    recommendationValue: {
+        fontSize: 14,
+        color: '#16A34A',
+        fontWeight: 'bold',
     },
 });

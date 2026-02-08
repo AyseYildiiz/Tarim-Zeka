@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, useSegments } from "expo-router";
+import { API_URL } from "../config";
 
 export const AuthContext = createContext();
 
@@ -56,7 +57,7 @@ export function AuthProvider({ children }) {
             try {
                 console.log("🔐 SignIn başladı:", email);
 
-                const response = await fetch("http://192.168.1.8:3000/api/auth/login", {
+                const response = await fetch(`${API_URL}/auth/login`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email, password }),
@@ -92,7 +93,7 @@ export function AuthProvider({ children }) {
             try {
                 console.log("📝 SignUp başladı:", email);
 
-                const response = await fetch("http://192.168.1.8:3000/api/auth/register", {
+                const response = await fetch(`${API_URL}/auth/register`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

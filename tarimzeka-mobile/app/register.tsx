@@ -1,17 +1,23 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert, SafeAreaView, StatusBar, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 export default function Register() {
     const router = useRouter();
     const { signUp, isLoading } = useAuth();
+    const { isDark, colors } = useTheme();
+    const styles = createStyles(colors);
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [location, setLocation] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     console.log("📝 Register sayfası render edildi");
 
@@ -36,7 +42,7 @@ export default function Register() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.container}>
                     <Text style={styles.title}>🌾 TarımZeka</Text>
@@ -44,7 +50,7 @@ export default function Register() {
 
                     <TextInput
                         placeholder="Ad Soyad"
-                        placeholderTextColor="#888"
+                        placeholderTextColor={colors.textTertiary}
                         value={name}
                         onChangeText={setName}
                         style={styles.input}
@@ -52,7 +58,7 @@ export default function Register() {
 
                     <TextInput
                         placeholder="E-posta"
-                        placeholderTextColor="#888"
+                        placeholderTextColor={colors.textTertiary}
                         value={email}
                         onChangeText={setEmail}
                         autoCapitalize="none"
@@ -62,7 +68,7 @@ export default function Register() {
 
                     <TextInput
                         placeholder="Telefon (Opsiyonel)"
-                        placeholderTextColor="#888"
+                        placeholderTextColor={colors.textTertiary}
                         value={phone}
                         onChangeText={setPhone}
                         keyboardType="phone-pad"
@@ -70,30 +76,54 @@ export default function Register() {
                     />
 
                     <TextInput
-                        placeholder="Konum (Opsiyonel)"
-                        placeholderTextColor="#888"
+                        placeholder="Şehir (Opsiyonel)"
+                        placeholderTextColor={colors.textTertiary}
                         value={location}
                         onChangeText={setLocation}
                         style={styles.input}
                     />
 
-                    <TextInput
-                        placeholder="Şifre"
-                        placeholderTextColor="#888"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                        style={styles.input}
-                    />
+                    <View style={styles.passwordRow}>
+                        <TextInput
+                            placeholder="Şifre"
+                            placeholderTextColor={colors.textTertiary}
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!showPassword}
+                            style={styles.passwordInput}
+                        />
+                        <Pressable
+                            style={styles.toggleButton}
+                            onPress={() => setShowPassword((prev) => !prev)}
+                        >
+                            <Ionicons
+                                name={showPassword ? "eye-off" : "eye"}
+                                size={20}
+                                color={colors.primary}
+                            />
+                        </Pressable>
+                    </View>
 
-                    <TextInput
-                        placeholder="Şifre Tekrar"
-                        placeholderTextColor="#888"
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        secureTextEntry
-                        style={styles.input}
-                    />
+                    <View style={styles.passwordRow}>
+                        <TextInput
+                            placeholder="Şifre Tekrar"
+                            placeholderTextColor={colors.textTertiary}
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            secureTextEntry={!showConfirmPassword}
+                            style={styles.passwordInput}
+                        />
+                        <Pressable
+                            style={styles.toggleButton}
+                            onPress={() => setShowConfirmPassword((prev) => !prev)}
+                        >
+                            <Ionicons
+                                name={showConfirmPassword ? "eye-off" : "eye"}
+                                size={20}
+                                color={colors.primary}
+                            />
+                        </Pressable>
+                    </View>
 
                     <Pressable style={styles.button} onPress={onRegister} disabled={isLoading}>
                         <Text style={styles.buttonText}>
@@ -112,10 +142,18 @@ export default function Register() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: {
+    background: string;
+    surface: string;
+    text: string;
+    textSecondary: string;
+    textTertiary: string;
+    primary: string;
+    border: string;
+}) => StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: "#0f172a",
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flexGrow: 1,
@@ -131,26 +169,45 @@ const styles = StyleSheet.create({
         fontSize: 32,
         fontWeight: "bold",
         textAlign: "center",
-        color: "#16A34A",
+        color: colors.primary,
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 20,
         textAlign: "center",
-        color: "#fff",
+        color: colors.text,
         marginBottom: 24,
     },
     input: {
         borderWidth: 1,
-        borderColor: "#334155",
+        borderColor: colors.border,
         borderRadius: 12,
         padding: 16,
-        backgroundColor: "#1e293b",
-        color: "#fff",
+        backgroundColor: colors.surface,
+        color: colors.text,
         fontSize: 16,
     },
+    passwordRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: 12,
+        backgroundColor: colors.surface,
+        paddingHorizontal: 16,
+    },
+    passwordInput: {
+        flex: 1,
+        paddingVertical: 16,
+        color: colors.text,
+        fontSize: 16,
+    },
+    toggleButton: {
+        paddingVertical: 8,
+        paddingLeft: 12,
+    },
     button: {
-        backgroundColor: "#16A34A",
+        backgroundColor: colors.primary,
         padding: 16,
         borderRadius: 12,
         marginTop: 16,
@@ -166,12 +223,12 @@ const styles = StyleSheet.create({
         padding: 8,
     },
     linkText: {
-        color: "#94a3b8",
+        color: colors.textSecondary,
         textAlign: "center",
         fontSize: 14,
     },
     linkTextBold: {
-        color: "#16A34A",
+        color: colors.primary,
         fontWeight: "bold",
     },
 });

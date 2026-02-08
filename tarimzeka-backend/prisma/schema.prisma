@@ -22,6 +22,20 @@ model User {
   fields        Field[]
   notifications Notification[]
   savings       Saving[]
+  passwordResets PasswordReset[]
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
 }
 
 model Field {
@@ -33,7 +47,7 @@ model Field {
   longitude       Float?
   soilType        String   // kumlu, killi, tınlı, turbalı
   cropType        String   // buğday, domates, pamuk, etc.
-  area            Float?   // m²
+  area            Float?   // donum (1 donum = 1000 m²)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   

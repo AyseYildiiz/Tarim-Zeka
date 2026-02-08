@@ -11,12 +11,14 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../../config';
+import { useTheme } from '../../context/ThemeContext';
 
 interface Field {
     id: string;
     name: string;
     cropType: string;
     soilType: string;
+    area?: number;
 }
 
 interface IrrigationTask {
@@ -35,6 +37,8 @@ const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
     'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
 export default function CalendarScreen() {
+    const { colors } = useTheme();
+    const styles = createStyles(colors);
     const [viewMode, setViewMode] = useState<'weekly' | 'monthly'>('weekly');
     const [fields, setFields] = useState<Field[]>([]);
     const [tasks, setTasks] = useState<IrrigationTask[]>([]);
@@ -111,9 +115,44 @@ export default function CalendarScreen() {
                 const fieldsList = Array.isArray(fieldsData) ? fieldsData : [];
                 setFields(fieldsList);
 
-                // Her tarla için sulama görevleri oluştur
-                const generatedTasks = generateIrrigationTasks(fieldsList);
-                setTasks(generatedTasks);
+                // Her tarla için backend'den gerçek schedule'ları çek
+                const allTasks: IrrigationTask[] = [];
+
+                for (const field of fieldsList) {
+                    try {
+                        const schedulesResponse = await fetch(
+                            `${API_URL}/fields/${field.id}`,
+                            { headers: { 'Authorization': `Bearer ${token}` } }
+                        );
+
+                        if (schedulesResponse.ok) {
+                            const fieldData = schedulesResponse.json();
+                            const schedules = (await fieldData).schedules || [];
+
+                            // Schedule'ları IrrigationTask'a dönüştür
+                            schedules.forEach((schedule: any) => {
+                                // waterAmount L/m² × alan (dönüm→m²) = Toplam Litre
+                                const areaM2 = (field.area ?? 1) * 1000;
+                                const totalWaterLiters = (schedule.waterAmount || 0) * areaM2;
+
+                                allTasks.push({
+                                    id: schedule.id,
+                                    fieldId: field.id,
+                                    fieldName: field.name,
+                                    date: formatDate(new Date(schedule.date)),
+                                    time: schedule.recommendedTime || '06:00',
+                                    waterAmount: Math.round(totalWaterLiters),
+                                    completed: schedule.status === 'completed',
+                                    cropType: field.cropType
+                                });
+                            });
+                        }
+                    } catch (error) {
+                        console.error(`Error loading schedules for field ${field.id}:`, error);
+                    }
+                }
+
+                setTasks(allTasks.sort((a, b) => a.date.localeCompare(b.date)));
             }
         } catch (error) {
             console.error('Load data error:', error);
@@ -236,6 +275,24 @@ export default function CalendarScreen() {
         return date.getMonth() === selectedDate.getMonth();
     };
 
+    const getAreaM2ForField = (fieldId: string) => {
+        const field = fields.find(f => f.id === fieldId);
+        return (field?.area ?? 1) * 1000;
+    };
+
+    const getPerM2Amount = (totalLiters: number, fieldId: string) => {
+        const areaM2 = getAreaM2ForField(fieldId);
+        return areaM2 > 0 ? totalLiters / areaM2 : totalLiters;
+    };
+
+    const getWaterLevelLabel = (perM2: number) => {
+        if (perM2 <= 2) return 'Çok Az';
+        if (perM2 <= 4) return 'Az';
+        if (perM2 <= 6) return 'Orta';
+        if (perM2 <= 8) return 'Yüksek';
+        return 'Çok Yüksek';
+    };
+
     const getTasksForDate = (date: Date): IrrigationTask[] => {
         return tasks.filter(task => task.date === formatDate(date));
     };
@@ -262,53 +319,130 @@ export default function CalendarScreen() {
         setRefreshing(false);
     };
 
-    const toggleTaskComplete = (taskId: string) => {
-        setTasks(prev => prev.map(task =>
-            task.id === taskId ? { ...task, completed: !task.completed } : task
-        ));
+    const toggleTaskComplete = async (taskId: string) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const task = tasks.find(t => t.id === taskId);
+
+            if (!task) return;
+
+            // Backend'e gönder
+            const response = await fetch(
+                `${API_URL}/irrigation/schedule/${taskId}/complete`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        waterUsed: task.waterAmount
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API Error:', response.status, errorData);
+                return;
+            }
+
+            // Server truth: tüm verileri yeniden yükle
+            await loadData();
+        } catch (error) {
+            console.error('Toggle task complete error:', error);
+        }
+    };
+
+    const normalizeCropName = (value: string) => {
+        return (value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/\u0307/g, '')
+            .replace(/ç/g, 'c')
+            .replace(/ğ/g, 'g')
+            .replace(/ı/g, 'i')
+            .replace(/ö/g, 'o')
+            .replace(/ş/g, 's')
+            .replace(/ü/g, 'u');
     };
 
     const getCropIcon = (cropType: string): string => {
-        const icons: { [key: string]: string } = {
-            'Buğday': '🌾',
-            'Mısır': '🌽',
-            'Domates': '🍅',
-            'Biber': '🌶️',
-            'Patates': '🥔',
-            'Üzüm': '🍇',
-            'Zeytin': '🫒',
-            'Elma': '🍎',
-            'Ayçiçeği': '🌻',
-            'Pamuk': '☁️',
+        const crop = normalizeCropName(cropType || '');
+        const cropIcons: { [key: string]: string } = {
+            bugday: '🌾',
+            arpa: '🌾',
+            misir: '🌽',
+            cavdar: '🌾',
+            mercimek: '🟠',
+            nohut: '🟤',
+            domates: '🍅',
+            biber: '🌶️',
+            patlican: '🍆',
+            salatalik: '🥒',
+            kabak: '🎃',
+            patates: '🥔',
+            sogan: '🧅',
+            sarimsak: '🧄',
+            havuc: '🥕',
+            lahana: '🥬',
+            marul: '🥬',
+            ispanak: '🥬',
+            elma: '🍎',
+            armut: '🍐',
+            cilek: '🍓',
+            kiraz: '🍒',
+            uzum: '🍇',
+            seftali: '🍑',
+            kayisi: '🟠',
+            erik: '🟣',
+            karpuz: '🍉',
+            kavun: '🍈',
+            aycicegi: '🌻',
+            kanola: '🌾',
+            susam: '🟤',
+            pamuk: '☁️',
+            'iplik bitkileri': '🧵',
+            zeytin: '🫒',
+            nar: '🔴',
+            incir: '🟤',
+            cay: '🍃',
+            kahve: '☕',
+            cicek: '🌹',
+            'ot (saman)': '🌱',
         };
-        return icons[cropType] || '🌱';
+        return cropIcons[crop] || '🌱';
     };
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#16A34A" />
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
 
     return (
         <ScrollView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: colors.background }]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>📅 Sulama Takvimi</Text>
-                <Text style={styles.headerSubtitle}>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>📅 Sulama Takvimi</Text>
+                <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>
                     {fields.length} tarla için planlama
                 </Text>
             </View>
 
             {/* View Mode Toggle */}
-            <View style={styles.toggleContainer}>
+            <View style={[styles.toggleContainer, { backgroundColor: colors.surface }]}>
                 <TouchableOpacity
-                    style={[styles.toggleButton, viewMode === 'weekly' && styles.toggleButtonActive]}
+                    style={[
+                        styles.toggleButton,
+                        viewMode === 'weekly' && styles.toggleButtonActive,
+                        { backgroundColor: viewMode === 'weekly' ? colors.primary : 'transparent' }
+                    ]}
                     onPress={() => setViewMode('weekly')}
                 >
                     <Text style={[styles.toggleText, viewMode === 'weekly' && styles.toggleTextActive]}>
@@ -316,7 +450,11 @@ export default function CalendarScreen() {
                     </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                    style={[styles.toggleButton, viewMode === 'monthly' && styles.toggleButtonActive]}
+                    style={[
+                        styles.toggleButton,
+                        viewMode === 'monthly' && styles.toggleButtonActive,
+                        { backgroundColor: viewMode === 'monthly' ? colors.primary : 'transparent' }
+                    ]}
                     onPress={() => setViewMode('monthly')}
                 >
                     <Text style={[styles.toggleText, viewMode === 'monthly' && styles.toggleTextActive]}>
@@ -331,9 +469,10 @@ export default function CalendarScreen() {
                     onPress={() => viewMode === 'weekly' ? navigateWeek(-1) : navigateMonth(-1)}
                     style={styles.navButton}
                 >
-                    <Ionicons name="chevron-back" size={24} color="#fff" />
+                    <Ionicons name="chevron-back" size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.navTitle}>
+                <Text style={[styles.navTitle, { color: colors.text }]}
+                >
                     {viewMode === 'weekly'
                         ? `${currentWeek[0]?.getDate()} - ${currentWeek[6]?.getDate()} ${MONTHS[selectedDate.getMonth()]}`
                         : `${MONTHS[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`
@@ -343,7 +482,7 @@ export default function CalendarScreen() {
                     onPress={() => viewMode === 'weekly' ? navigateWeek(1) : navigateMonth(1)}
                     style={styles.navButton}
                 >
-                    <Ionicons name="chevron-forward" size={24} color="#fff" />
+                    <Ionicons name="chevron-forward" size={24} color={colors.text} />
                 </TouchableOpacity>
             </View>
 
@@ -361,10 +500,11 @@ export default function CalendarScreen() {
                                 ]}
                                 onPress={() => setSelectedDate(date)}
                             >
-                                <Text style={styles.dayName}>{DAYS[index]}</Text>
+                                <Text style={[styles.dayName, isSelected(date) && styles.dayNameSelected]}>{DAYS[index]}</Text>
                                 <Text style={[
                                     styles.dayNumber,
-                                    isToday(date) && styles.dayNumberToday
+                                    isToday(date) && styles.dayNumberToday,
+                                    isSelected(date) && styles.dayNumberSelected
                                 ]}>
                                     {date.getDate()}
                                 </Text>
@@ -400,7 +540,8 @@ export default function CalendarScreen() {
                                 >
                                     <Text style={[
                                         styles.monthDayNumber,
-                                        !isCurrentMonth(date) && styles.monthDayNumberOther
+                                        !isCurrentMonth(date) && styles.monthDayNumberOther,
+                                        isSelected(date) && styles.monthDayNumberSelected
                                     ]}>
                                         {date.getDate()}
                                     </Text>
@@ -416,53 +557,64 @@ export default function CalendarScreen() {
 
             {/* Tasks for Selected Date */}
             <View style={styles.tasksSection}>
-                <Text style={styles.tasksTitle}>
+                <Text style={[styles.tasksTitle, { color: colors.text }]}>
                     {isToday(selectedDate) ? 'Bugünkü Görevler' : `${selectedDate.getDate()} ${MONTHS[selectedDate.getMonth()]} Görevleri`}
                 </Text>
 
                 {fields.length === 0 ? (
-                    <View style={styles.noTasks}>
-                        <Ionicons name="leaf-outline" size={48} color="#64748b" />
-                        <Text style={styles.noTasksText}>Henüz tarla eklemediniz</Text>
-                        <Text style={styles.noTasksSubtext}>
+                    <View style={[styles.noTasks, { backgroundColor: colors.surface }]}>
+                        <Ionicons name="leaf-outline" size={48} color={colors.textTertiary} />
+                        <Text style={[styles.noTasksText, { color: colors.textSecondary }]}>Henüz tarla eklemediniz</Text>
+                        <Text style={[styles.noTasksSubtext, { color: colors.textTertiary }]}>
                             Sulama takvimi için tarla ekleyin
                         </Text>
                     </View>
                 ) : getTasksForDate(selectedDate).length === 0 ? (
-                    <View style={styles.noTasks}>
-                        <Ionicons name="checkmark-circle-outline" size={48} color="#64748b" />
-                        <Text style={styles.noTasksText}>Bu gün için sulama görevi yok</Text>
+                    <View style={[styles.noTasks, { backgroundColor: colors.surface }]}>
+                        <Ionicons name="checkmark-circle-outline" size={48} color={colors.textTertiary} />
+                        <Text style={[styles.noTasksText, { color: colors.textSecondary }]}>Bu gün için sulama görevi yok</Text>
                     </View>
                 ) : (
                     getTasksForDate(selectedDate).map((task) => (
                         <TouchableOpacity
                             key={task.id}
-                            style={[styles.taskCard, task.completed && styles.taskCardCompleted]}
+                            style={[
+                                styles.taskCard,
+                                task.completed && styles.taskCardCompleted,
+                                { backgroundColor: colors.surface }
+                            ]}
                             onPress={() => toggleTaskComplete(task.id)}
                         >
                             <View style={styles.taskCheckbox}>
                                 <Ionicons
                                     name={task.completed ? "checkmark-circle" : "ellipse-outline"}
                                     size={28}
-                                    color={task.completed ? "#16A34A" : "#64748b"}
+                                    color={task.completed ? colors.primary : colors.textTertiary}
                                 />
                             </View>
                             <View style={styles.taskInfo}>
                                 <View style={styles.taskHeader}>
-                                    <Text style={[styles.taskFieldName, task.completed && styles.taskTextCompleted]}>
+                                    <Text style={[styles.taskFieldName, task.completed && styles.taskTextCompleted, { color: colors.text }]}>
                                         {task.fieldName}
                                     </Text>
                                     <Text style={styles.taskCropIcon}>{getCropIcon(task.cropType)}</Text>
                                 </View>
-                                <Text style={styles.taskCrop}>{task.cropType}</Text>
+                                <Text style={[styles.taskCrop, { color: colors.primary }]}>{task.cropType}</Text>
                                 <View style={styles.taskDetails}>
                                     <View style={styles.taskDetail}>
                                         <Ionicons name="time-outline" size={14} color="#3B82F6" />
-                                        <Text style={styles.taskDetailText}>{task.time}</Text>
+                                        <Text style={[styles.taskDetailText, { color: colors.textSecondary }]}>{task.time}</Text>
                                     </View>
                                     <View style={styles.taskDetail}>
                                         <Ionicons name="water" size={14} color="#06B6D4" />
-                                        <Text style={styles.taskDetailText}>{task.waterAmount} L</Text>
+                                        <View>
+                                            <Text style={[styles.taskDetailText, { color: colors.textSecondary }]}>
+                                                {getWaterLevelLabel(getPerM2Amount(task.waterAmount, task.fieldId))} • {task.waterAmount} L
+                                            </Text>
+                                            <Text style={[styles.taskDetailSubText, { color: colors.textTertiary }]}>
+                                                ({getPerM2Amount(task.waterAmount, task.fieldId).toFixed(1)} L/m²)
+                                            </Text>
+                                        </View>
                                     </View>
                                 </View>
                             </View>
@@ -474,10 +626,11 @@ export default function CalendarScreen() {
             {/* Summary */}
             {fields.length > 0 && (
                 <View style={styles.summarySection}>
-                    <Text style={styles.summaryTitle}>📊 Haftalık Özet</Text>
+                    <Text style={[styles.summaryTitle, { color: colors.text }]}>📊 Haftalık Özet</Text>
                     <View style={styles.summaryCards}>
-                        <View style={styles.summaryCard}>
-                            <Text style={styles.summaryValue}>
+                        <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}
+                        >
+                            <Text style={[styles.summaryValue, { color: colors.primary }]}>
                                 {tasks.filter(t => {
                                     const taskDate = new Date(t.date);
                                     const weekStart = currentWeek[0];
@@ -485,10 +638,11 @@ export default function CalendarScreen() {
                                     return taskDate >= weekStart && taskDate <= weekEnd;
                                 }).length}
                             </Text>
-                            <Text style={styles.summaryLabel}>Toplam Sulama</Text>
+                            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Toplam Sulama</Text>
                         </View>
-                        <View style={styles.summaryCard}>
-                            <Text style={styles.summaryValue}>
+                        <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}
+                        >
+                            <Text style={[styles.summaryValue, { color: colors.primary }]}>
                                 {tasks.filter(t => {
                                     const taskDate = new Date(t.date);
                                     const weekStart = currentWeek[0];
@@ -496,7 +650,7 @@ export default function CalendarScreen() {
                                     return taskDate >= weekStart && taskDate <= weekEnd;
                                 }).reduce((sum, t) => sum + t.waterAmount, 0)} L
                             </Text>
-                            <Text style={styles.summaryLabel}>Toplam Su</Text>
+                            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Toplam Su</Text>
                         </View>
                     </View>
                 </View>
@@ -507,16 +661,26 @@ export default function CalendarScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: {
+    background: string;
+    surface: string;
+    surfaceLight: string;
+    text: string;
+    textSecondary: string;
+    textTertiary: string;
+    primary: string;
+    border: string;
+    warning: string;
+}) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0f172a',
+        backgroundColor: colors.background,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#0f172a',
+        backgroundColor: colors.background,
     },
     header: {
         padding: 20,
@@ -525,19 +689,21 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#fff',
+        color: colors.text,
     },
     headerSubtitle: {
         fontSize: 14,
-        color: '#64748b',
+        color: colors.textSecondary,
         marginTop: 4,
     },
     toggleContainer: {
         flexDirection: 'row',
         marginHorizontal: 20,
-        backgroundColor: '#1e293b',
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 4,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     toggleButton: {
         flex: 1,
@@ -546,10 +712,10 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     toggleButtonActive: {
-        backgroundColor: '#16A34A',
+        backgroundColor: colors.primary,
     },
     toggleText: {
-        color: '#94a3b8',
+        color: colors.textSecondary,
         fontWeight: '600',
     },
     toggleTextActive: {
@@ -568,7 +734,7 @@ const styles = StyleSheet.create({
     navTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#fff',
+        color: colors.text,
     },
     weekContainer: {
         paddingHorizontal: 10,
@@ -584,30 +750,36 @@ const styles = StyleSheet.create({
         minWidth: 45,
     },
     dayColumnSelected: {
-        backgroundColor: '#16A34A',
+        backgroundColor: colors.primary,
     },
     dayColumnToday: {
         borderWidth: 2,
-        borderColor: '#16A34A',
+        borderColor: colors.primary,
     },
     dayName: {
         fontSize: 12,
-        color: '#94a3b8',
+        color: colors.textSecondary,
         marginBottom: 4,
+    },
+    dayNameSelected: {
+        color: '#fff',
     },
     dayNumber: {
         fontSize: 18,
         fontWeight: '600',
+        color: colors.text,
+    },
+    dayNumberSelected: {
         color: '#fff',
     },
     dayNumberToday: {
-        color: '#16A34A',
+        color: colors.primary,
     },
     taskDot: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#F59E0B',
+        backgroundColor: colors.warning,
         marginTop: 4,
     },
     monthContainer: {
@@ -620,7 +792,7 @@ const styles = StyleSheet.create({
     },
     monthDayName: {
         fontSize: 12,
-        color: '#94a3b8',
+        color: colors.textSecondary,
         width: 40,
         textAlign: 'center',
     },
@@ -637,27 +809,30 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     monthDaySelected: {
-        backgroundColor: '#16A34A',
+        backgroundColor: colors.primary,
     },
     monthDayToday: {
         borderWidth: 2,
-        borderColor: '#16A34A',
+        borderColor: colors.primary,
     },
     monthDayOther: {
         opacity: 0.3,
     },
     monthDayNumber: {
         fontSize: 14,
+        color: colors.text,
+    },
+    monthDayNumberSelected: {
         color: '#fff',
     },
     monthDayNumberOther: {
-        color: '#64748b',
+        color: colors.textTertiary,
     },
     taskDotSmall: {
         width: 4,
         height: 4,
         borderRadius: 2,
-        backgroundColor: '#F59E0B',
+        backgroundColor: colors.warning,
         position: 'absolute',
         bottom: 4,
     },
@@ -667,32 +842,36 @@ const styles = StyleSheet.create({
     tasksTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#fff',
+        color: colors.text,
         marginBottom: 16,
     },
     noTasks: {
         alignItems: 'center',
         padding: 40,
-        backgroundColor: '#1e293b',
+        backgroundColor: colors.surface,
         borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     noTasksText: {
-        color: '#94a3b8',
+        color: colors.textSecondary,
         marginTop: 12,
         fontSize: 16,
     },
     noTasksSubtext: {
-        color: '#64748b',
+        color: colors.textTertiary,
         marginTop: 4,
         fontSize: 14,
     },
     taskCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1e293b',
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 16,
         marginBottom: 10,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     taskCardCompleted: {
         opacity: 0.6,
@@ -711,7 +890,7 @@ const styles = StyleSheet.create({
     taskFieldName: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
+        color: colors.text,
     },
     taskCropIcon: {
         fontSize: 20,
@@ -721,7 +900,7 @@ const styles = StyleSheet.create({
     },
     taskCrop: {
         fontSize: 14,
-        color: '#16A34A',
+        color: colors.primary,
         marginTop: 2,
     },
     taskDetails: {
@@ -736,7 +915,12 @@ const styles = StyleSheet.create({
     },
     taskDetailText: {
         fontSize: 13,
-        color: '#94a3b8',
+        color: colors.textSecondary,
+    },
+    taskDetailSubText: {
+        fontSize: 11,
+        color: colors.textTertiary,
+        marginTop: 2,
     },
     summarySection: {
         padding: 20,
@@ -745,7 +929,7 @@ const styles = StyleSheet.create({
     summaryTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
+        color: colors.text,
         marginBottom: 12,
     },
     summaryCards: {
@@ -754,19 +938,21 @@ const styles = StyleSheet.create({
     },
     summaryCard: {
         flex: 1,
-        backgroundColor: '#1e293b',
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     summaryValue: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#16A34A',
+        color: colors.primary,
     },
     summaryLabel: {
         fontSize: 12,
-        color: '#64748b',
+        color: colors.textSecondary,
         marginTop: 4,
     },
 });

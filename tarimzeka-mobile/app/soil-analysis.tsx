@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
+import { useTheme } from '../context/ThemeContext';
 
 interface SoilAnalysis {
     id: string;
@@ -106,6 +107,8 @@ interface SoilAnalysis {
 
 export default function SoilAnalysisScreen() {
     const router = useRouter();
+    const { colors, isDark } = useTheme();
+    const styles = createStyles(colors, isDark);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [result, setResult] = useState<SoilAnalysis | null>(null);
@@ -260,7 +263,7 @@ export default function SoilAnalysisScreen() {
             case 'düşük': return '#EF4444';
             case 'orta': return '#F59E0B';
             case 'yüksek': return '#16A34A';
-            default: return '#64748b';
+            default: return colors.textTertiary;
         }
     };
 
@@ -312,7 +315,7 @@ export default function SoilAnalysisScreen() {
                     <Ionicons
                         name={expandedSection === 'overview' ? 'chevron-up' : 'chevron-down'}
                         size={24}
-                        color="#64748b"
+                        color={colors.textTertiary}
                     />
                 </TouchableOpacity>
 
@@ -373,7 +376,7 @@ export default function SoilAnalysisScreen() {
                     <Ionicons
                         name={expandedSection === 'nutrients' ? 'chevron-up' : 'chevron-down'}
                         size={24}
-                        color="#64748b"
+                        color={colors.textTertiary}
                     />
                 </TouchableOpacity>
 
@@ -431,7 +434,7 @@ export default function SoilAnalysisScreen() {
                     <Ionicons
                         name={expandedSection === 'irrigation' ? 'chevron-up' : 'chevron-down'}
                         size={24}
-                        color="#64748b"
+                        color={colors.textTertiary}
                     />
                 </TouchableOpacity>
 
@@ -457,22 +460,22 @@ export default function SoilAnalysisScreen() {
 
                         <View style={styles.irrigationDetails}>
                             <View style={styles.irrigationRow}>
-                                <Ionicons name="options" size={18} color="#64748b" />
+                                <Ionicons name="options" size={18} color={colors.textTertiary} />
                                 <Text style={styles.irrigationLabel}>Yöntem:</Text>
                                 <Text style={styles.irrigationValue}>{analysis.irrigation?.recommendedMethod}</Text>
                             </View>
                             <View style={styles.irrigationRow}>
-                                <Ionicons name="refresh" size={18} color="#64748b" />
+                                <Ionicons name="refresh" size={18} color={colors.textTertiary} />
                                 <Text style={styles.irrigationLabel}>Sıklık:</Text>
                                 <Text style={styles.irrigationValue}>{analysis.irrigation?.frequency}</Text>
                             </View>
                             <View style={styles.irrigationRow}>
-                                <Ionicons name="beaker" size={18} color="#64748b" />
+                                <Ionicons name="beaker" size={18} color={colors.textTertiary} />
                                 <Text style={styles.irrigationLabel}>Miktar:</Text>
                                 <Text style={styles.irrigationValue}>{analysis.irrigation?.amount}</Text>
                             </View>
                             <View style={styles.irrigationRow}>
-                                <Ionicons name="time" size={18} color="#64748b" />
+                                <Ionicons name="time" size={18} color={colors.textTertiary} />
                                 <Text style={styles.irrigationLabel}>En İyi Zaman:</Text>
                                 <Text style={styles.irrigationValue}>{analysis.irrigation?.bestTime}</Text>
                             </View>
@@ -501,7 +504,7 @@ export default function SoilAnalysisScreen() {
                     <Ionicons
                         name={expandedSection === 'fertilization' ? 'chevron-up' : 'chevron-down'}
                         size={24}
-                        color="#64748b"
+                        color={colors.textTertiary}
                     />
                 </TouchableOpacity>
 
@@ -544,7 +547,7 @@ export default function SoilAnalysisScreen() {
                     <Ionicons
                         name={expandedSection === 'crops' ? 'chevron-up' : 'chevron-down'}
                         size={24}
-                        color="#64748b"
+                        color={colors.textTertiary}
                     />
                 </TouchableOpacity>
 
@@ -614,7 +617,7 @@ export default function SoilAnalysisScreen() {
                     <Ionicons
                         name={expandedSection === 'improvement' ? 'chevron-up' : 'chevron-down'}
                         size={24}
-                        color="#64748b"
+                        color={colors.textTertiary}
                     />
                 </TouchableOpacity>
 
@@ -663,7 +666,7 @@ export default function SoilAnalysisScreen() {
         >
             {history.length === 0 ? (
                 <View style={styles.emptyHistory}>
-                    <Ionicons name="document-text-outline" size={60} color="#334155" />
+                    <Ionicons name="document-text-outline" size={60} color={colors.textTertiary} />
                     <Text style={styles.emptyHistoryText}>Henüz analiz yapılmadı</Text>
                     <Text style={styles.emptyHistorySubtext}>İlk toprak analizinizi yapın</Text>
                 </View>
@@ -687,7 +690,7 @@ export default function SoilAnalysisScreen() {
                                 {new Date(item.createdAt).toLocaleDateString('tr-TR')}
                             </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={24} color="#64748b" />
+                        <Ionicons name="chevron-forward" size={24} color={colors.textTertiary} />
                     </TouchableOpacity>
                 ))
             )}
@@ -699,7 +702,7 @@ export default function SoilAnalysisScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>🔬 Toprak Analizi</Text>
                 <View style={{ width: 40 }} />
@@ -714,7 +717,7 @@ export default function SoilAnalysisScreen() {
                     <Ionicons
                         name="scan"
                         size={20}
-                        color={activeTab === 'analyze' ? '#16A34A' : '#64748b'}
+                        color={activeTab === 'analyze' ? colors.primary : colors.textTertiary}
                     />
                     <Text style={[styles.tabText, activeTab === 'analyze' && styles.activeTabText]}>
                         Analiz
@@ -727,7 +730,7 @@ export default function SoilAnalysisScreen() {
                     <Ionicons
                         name="time"
                         size={20}
-                        color={activeTab === 'history' ? '#16A34A' : '#64748b'}
+                        color={activeTab === 'history' ? colors.primary : colors.textTertiary}
                     />
                     <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
                         Geçmiş ({history.length})
@@ -766,7 +769,7 @@ export default function SoilAnalysisScreen() {
                                 </View>
                             ) : (
                                 <View style={styles.imagePlaceholder}>
-                                    <Ionicons name="image-outline" size={80} color="#334155" />
+                                    <Ionicons name="image-outline" size={80} color={colors.textTertiary} />
                                     <Text style={styles.placeholderText}>Toprak fotoğrafı seçin</Text>
                                 </View>
                             )}
@@ -827,597 +830,621 @@ export default function SoilAnalysisScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0f172a',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: '#1e293b',
-    },
-    backButton: {
-        padding: 8,
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    tabs: {
-        flexDirection: 'row',
-        backgroundColor: '#1e293b',
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-        gap: 12,
-    },
-    tab: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 12,
-        borderRadius: 10,
-        backgroundColor: '#0f172a',
-    },
-    activeTab: {
-        backgroundColor: '#14532d',
-    },
-    tabText: {
-        fontSize: 14,
-        color: '#64748b',
-        fontWeight: '500',
-    },
-    activeTabText: {
-        color: '#16A34A',
-    },
-    analyzeContent: {
-        padding: 16,
-        gap: 20,
-    },
-    imageSection: {
-        alignItems: 'center',
-    },
-    imagePlaceholder: {
-        width: '100%',
-        height: 250,
-        backgroundColor: '#1e293b',
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: '#334155',
-        borderStyle: 'dashed',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-    },
-    placeholderText: {
-        color: '#64748b',
-        fontSize: 16,
-    },
-    selectedImageContainer: {
-        width: '100%',
-        position: 'relative',
-    },
-    selectedImage: {
-        width: '100%',
-        height: 250,
-        borderRadius: 16,
-    },
-    removeImageButton: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    pickButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        backgroundColor: '#3B82F6',
-        paddingVertical: 16,
-        borderRadius: 12,
-    },
-    galleryButton: {
-        backgroundColor: '#8B5CF6',
-    },
-    pickButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    analyzeButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        backgroundColor: '#16A34A',
-        paddingVertical: 18,
-        borderRadius: 12,
-    },
-    analyzeButtonDisabled: {
-        backgroundColor: '#334155',
-    },
-    analyzeButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    tipsCard: {
-        backgroundColor: '#1e293b',
-        padding: 16,
-        borderRadius: 12,
-        borderLeftWidth: 4,
-        borderLeftColor: '#F59E0B',
-    },
-    tipsTitle: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 12,
-    },
-    tipItem: {
-        color: '#94a3b8',
-        fontSize: 14,
-        marginBottom: 6,
-    },
+const createStyles = (colors: {
+    background: string;
+    surface: string;
+    surfaceLight: string;
+    inputBackground: string;
+    text: string;
+    textSecondary: string;
+    textTertiary: string;
+    primary: string;
+    border: string;
+    borderLight: string;
+    warning: string;
+    error: string;
+}, isDark: boolean) => {
+    const tabBackground = isDark ? '#0f172a' : colors.inputBackground;
+    const activeTabBackground = isDark ? '#14532d' : '#dcfce7';
+    const confidenceBackground = isDark ? '#14532d' : '#dcfce7';
+    const warningBackground = isDark ? '#451a03' : '#fffbeb';
+    const warningText = isDark ? '#fcd34d' : '#92400E';
+    const organicBackground = isDark ? '#14532d' : '#ecfccb';
+    const organicText = isDark ? '#86efac' : '#166534';
+    const priorityBackground = isDark ? '#450a0a' : '#fef2f2';
+    const priorityText = isDark ? '#fca5a5' : '#b91c1c';
+    return StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        header: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 16,
+            backgroundColor: colors.surface,
+        },
+        backButton: {
+            padding: 8,
+        },
+        headerTitle: {
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: colors.text,
+        },
+        tabs: {
+            flexDirection: 'row',
+            backgroundColor: colors.surface,
+            paddingHorizontal: 16,
+            paddingBottom: 12,
+            gap: 12,
+        },
+        tab: {
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            paddingVertical: 12,
+            borderRadius: 10,
+            backgroundColor: tabBackground,
+        },
+        activeTab: {
+            backgroundColor: activeTabBackground,
+        },
+        tabText: {
+            fontSize: 14,
+            color: colors.textSecondary,
+            fontWeight: '500',
+        },
+        activeTabText: {
+            color: colors.primary,
+        },
+        analyzeContent: {
+            padding: 16,
+            gap: 20,
+        },
+        imageSection: {
+            alignItems: 'center',
+        },
+        imagePlaceholder: {
+            width: '100%',
+            height: 250,
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            borderWidth: 2,
+            borderColor: colors.border,
+            borderStyle: 'dashed',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+        },
+        placeholderText: {
+            color: colors.textSecondary,
+            fontSize: 16,
+        },
+        selectedImageContainer: {
+            width: '100%',
+            position: 'relative',
+        },
+        selectedImage: {
+            width: '100%',
+            height: 250,
+            borderRadius: 16,
+        },
+        removeImageButton: {
+            position: 'absolute',
+            top: 10,
+            right: 10,
+        },
+        buttonContainer: {
+            flexDirection: 'row',
+            gap: 12,
+        },
+        pickButton: {
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            backgroundColor: '#3B82F6',
+            paddingVertical: 16,
+            borderRadius: 12,
+        },
+        galleryButton: {
+            backgroundColor: '#8B5CF6',
+        },
+        pickButtonText: {
+            color: '#fff',
+            fontSize: 16,
+            fontWeight: '600',
+        },
+        analyzeButton: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            backgroundColor: colors.primary,
+            paddingVertical: 18,
+            borderRadius: 12,
+        },
+        analyzeButtonDisabled: {
+            backgroundColor: colors.border,
+        },
+        analyzeButtonText: {
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 'bold',
+        },
+        tipsCard: {
+            backgroundColor: colors.surface,
+            padding: 16,
+            borderRadius: 12,
+            borderLeftWidth: 4,
+            borderLeftColor: colors.warning,
+        },
+        tipsTitle: {
+            color: colors.text,
+            fontSize: 16,
+            fontWeight: '600',
+            marginBottom: 12,
+        },
+        tipItem: {
+            color: colors.textSecondary,
+            fontSize: 14,
+            marginBottom: 6,
+        },
 
-    // Result styles
-    resultContainer: {
-        flex: 1,
-        padding: 16,
-    },
-    resultImage: {
-        width: '100%',
-        height: 200,
-        borderRadius: 16,
-        marginBottom: 16,
-    },
-    scoreCard: {
-        flexDirection: 'row',
-        backgroundColor: '#1e293b',
-        padding: 20,
-        borderRadius: 16,
-        alignItems: 'center',
-        gap: 20,
-        marginBottom: 12,
-    },
-    scoreCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#0f172a',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    scoreValue: {
-        fontSize: 28,
-        fontWeight: 'bold',
-    },
-    scoreLabel: {
-        color: '#64748b',
-        fontSize: 12,
-    },
-    scoreInfo: {
-        flex: 1,
-    },
-    scoreStatus: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 4,
-    },
-    scoreSummary: {
-        color: '#94a3b8',
-        fontSize: 14,
-    },
-    confidenceBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'flex-start',
-        gap: 6,
-        backgroundColor: '#14532d',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-        marginBottom: 16,
-    },
-    confidenceText: {
-        color: '#16A34A',
-        fontSize: 13,
-        fontWeight: '500',
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#1e293b',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 2,
-    },
-    sectionHeaderLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    sectionTitle: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    sectionContent: {
-        backgroundColor: '#1e293b',
-        padding: 16,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 12,
-        marginBottom: 12,
-    },
-    infoGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-    },
-    infoItem: {
-        width: '47%',
-        backgroundColor: '#0f172a',
-        padding: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        gap: 8,
-    },
-    infoLabel: {
-        color: '#64748b',
-        fontSize: 12,
-    },
-    infoValue: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    infoSubValue: {
-        color: '#94a3b8',
-        fontSize: 12,
-    },
-    textureCard: {
-        marginTop: 16,
-        backgroundColor: '#0f172a',
-        padding: 16,
-        borderRadius: 12,
-    },
-    textureTitle: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '500',
-        marginBottom: 12,
-    },
-    textureBar: {
-        flexDirection: 'row',
-        height: 40,
-        borderRadius: 8,
-        overflow: 'hidden',
-    },
-    textureSegment: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    texturePercent: {
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: '600',
-    },
-    nutrientGrid: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 12,
-    },
-    nutrientItem: {
-        flex: 1,
-        alignItems: 'center',
-        gap: 8,
-    },
-    nutrientLabel: {
-        color: '#64748b',
-        fontSize: 12,
-    },
-    nutrientBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
-    },
-    nutrientValue: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    nutrientDescription: {
-        color: '#94a3b8',
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    organicCard: {
-        marginTop: 16,
-        backgroundColor: '#0f172a',
-        padding: 16,
-        borderRadius: 12,
-    },
-    organicHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 8,
-    },
-    organicTitle: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    organicValue: {
-        color: '#16A34A',
-        fontSize: 18,
-        fontWeight: '600',
-        marginBottom: 6,
-    },
-    organicDescription: {
-        color: '#94a3b8',
-        fontSize: 13,
-    },
-    needBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        padding: 12,
-        borderRadius: 10,
-        marginBottom: 16,
-    },
-    needText: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
-    irrigationDetails: {
-        gap: 10,
-    },
-    irrigationRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    irrigationLabel: {
-        color: '#64748b',
-        fontSize: 14,
-    },
-    irrigationValue: {
-        color: '#fff',
-        fontSize: 14,
-        flex: 1,
-    },
-    warningsCard: {
-        marginTop: 16,
-        backgroundColor: '#451a03',
-        padding: 12,
-        borderRadius: 10,
-    },
-    warningsTitle: {
-        color: '#F59E0B',
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 8,
-    },
-    warningText: {
-        color: '#fcd34d',
-        fontSize: 13,
-        marginBottom: 4,
-    },
-    fertilizerCard: {
-        backgroundColor: '#0f172a',
-        padding: 14,
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    fertilizerHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    fertilizerType: {
-        color: '#8B5CF6',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    fertilizerProduct: {
-        color: '#fff',
-        fontSize: 14,
-    },
-    fertilizerDetails: {
-        gap: 4,
-    },
-    fertilizerDetail: {
-        color: '#94a3b8',
-        fontSize: 13,
-    },
-    organicOptionsCard: {
-        backgroundColor: '#14532d',
-        padding: 14,
-        borderRadius: 10,
-    },
-    organicOptionsTitle: {
-        color: '#16A34A',
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 8,
-    },
-    organicOption: {
-        color: '#86efac',
-        fontSize: 13,
-        marginBottom: 4,
-    },
-    cropCategory: {
-        marginBottom: 16,
-    },
-    cropCategoryHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 10,
-    },
-    cropCategoryIcon: {
-        fontSize: 18,
-    },
-    cropCategoryTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    cropItem: {
-        backgroundColor: '#0f172a',
-        padding: 12,
-        borderRadius: 10,
-        marginBottom: 8,
-    },
-    cropName: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    cropReason: {
-        color: '#94a3b8',
-        fontSize: 13,
-    },
-    cropTips: {
-        color: '#16A34A',
-        fontSize: 12,
-        marginTop: 6,
-    },
-    cropPrecaution: {
-        color: '#F59E0B',
-        fontSize: 12,
-        marginTop: 6,
-    },
-    priorityCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: '#450a0a',
-        padding: 12,
-        borderRadius: 10,
-        marginBottom: 16,
-    },
-    priorityText: {
-        color: '#fca5a5',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    improvementSection: {
-        marginBottom: 16,
-    },
-    improvementTitle: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 8,
-    },
-    improvementItem: {
-        color: '#94a3b8',
-        fontSize: 13,
-        marginBottom: 4,
-    },
-    notesCard: {
-        backgroundColor: '#1e293b',
-        padding: 16,
-        borderRadius: 12,
-        marginTop: 8,
-    },
-    notesTitle: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '600',
-        marginBottom: 8,
-    },
-    notesText: {
-        color: '#94a3b8',
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    newAnalysisButton: {
-        position: 'absolute',
-        bottom: 20,
-        right: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: '#16A34A',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        borderRadius: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
-    },
-    newAnalysisText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
+        // Result styles
+        resultContainer: {
+            flex: 1,
+            padding: 16,
+        },
+        resultImage: {
+            width: '100%',
+            height: 200,
+            borderRadius: 16,
+            marginBottom: 16,
+        },
+        scoreCard: {
+            flexDirection: 'row',
+            backgroundColor: colors.surface,
+            padding: 20,
+            borderRadius: 16,
+            alignItems: 'center',
+            gap: 20,
+            marginBottom: 12,
+        },
+        scoreCircle: {
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: colors.inputBackground,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        scoreValue: {
+            fontSize: 28,
+            fontWeight: 'bold',
+        },
+        scoreLabel: {
+            color: colors.textTertiary,
+            fontSize: 12,
+        },
+        scoreInfo: {
+            flex: 1,
+        },
+        scoreStatus: {
+            fontSize: 20,
+            fontWeight: 'bold',
+            marginBottom: 4,
+        },
+        scoreSummary: {
+            color: colors.textSecondary,
+            fontSize: 14,
+        },
+        confidenceBadge: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            alignSelf: 'flex-start',
+            gap: 6,
+            backgroundColor: confidenceBackground,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 20,
+            marginBottom: 16,
+        },
+        confidenceText: {
+            color: colors.primary,
+            fontSize: 13,
+            fontWeight: '500',
+        },
+        sectionHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: colors.surface,
+            padding: 16,
+            borderRadius: 12,
+            marginBottom: 2,
+        },
+        sectionHeaderLeft: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+        },
+        sectionTitle: {
+            color: colors.text,
+            fontSize: 16,
+            fontWeight: '600',
+        },
+        sectionContent: {
+            backgroundColor: colors.surface,
+            padding: 16,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 12,
+            marginBottom: 12,
+        },
+        infoGrid: {
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 12,
+        },
+        infoItem: {
+            width: '47%',
+            backgroundColor: colors.inputBackground,
+            padding: 16,
+            borderRadius: 12,
+            alignItems: 'center',
+            gap: 8,
+        },
+        infoLabel: {
+            color: colors.textSecondary,
+            fontSize: 12,
+        },
+        infoValue: {
+            color: colors.text,
+            fontSize: 16,
+            fontWeight: '600',
+        },
+        infoSubValue: {
+            color: colors.textTertiary,
+            fontSize: 12,
+        },
+        textureCard: {
+            marginTop: 16,
+            backgroundColor: colors.inputBackground,
+            padding: 16,
+            borderRadius: 12,
+        },
+        textureTitle: {
+            color: colors.text,
+            fontSize: 14,
+            fontWeight: '500',
+            marginBottom: 12,
+        },
+        textureBar: {
+            flexDirection: 'row',
+            height: 40,
+            borderRadius: 8,
+            overflow: 'hidden',
+        },
+        textureSegment: {
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        texturePercent: {
+            color: '#fff',
+            fontSize: 10,
+            fontWeight: '600',
+        },
+        nutrientGrid: {
+            flexDirection: 'row',
+            gap: 12,
+            marginBottom: 12,
+        },
+        nutrientItem: {
+            flex: 1,
+            alignItems: 'center',
+            gap: 8,
+        },
+        nutrientLabel: {
+            color: colors.textSecondary,
+            fontSize: 12,
+        },
+        nutrientBadge: {
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 8,
+        },
+        nutrientValue: {
+            fontSize: 14,
+            fontWeight: '600',
+        },
+        nutrientDescription: {
+            color: colors.textSecondary,
+            fontSize: 14,
+            lineHeight: 20,
+        },
+        organicCard: {
+            marginTop: 16,
+            backgroundColor: colors.inputBackground,
+            padding: 16,
+            borderRadius: 12,
+        },
+        organicHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 8,
+        },
+        organicTitle: {
+            color: colors.text,
+            fontSize: 14,
+            fontWeight: '500',
+        },
+        organicValue: {
+            color: '#16A34A',
+            fontSize: 18,
+            fontWeight: '600',
+            marginBottom: 6,
+        },
+        organicDescription: {
+            color: colors.textSecondary,
+            fontSize: 13,
+        },
+        needBadge: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            padding: 12,
+            borderRadius: 10,
+            marginBottom: 16,
+        },
+        needText: {
+            fontSize: 15,
+            fontWeight: '600',
+        },
+        irrigationDetails: {
+            gap: 10,
+        },
+        irrigationRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+        },
+        irrigationLabel: {
+            color: colors.textSecondary,
+            fontSize: 14,
+        },
+        irrigationValue: {
+            color: colors.text,
+            fontSize: 14,
+            flex: 1,
+        },
+        warningsCard: {
+            marginTop: 16,
+            backgroundColor: warningBackground,
+            padding: 12,
+            borderRadius: 10,
+        },
+        warningsTitle: {
+            color: colors.warning,
+            fontSize: 14,
+            fontWeight: '600',
+            marginBottom: 8,
+        },
+        warningText: {
+            color: warningText,
+            fontSize: 13,
+            marginBottom: 4,
+        },
+        fertilizerCard: {
+            backgroundColor: colors.inputBackground,
+            padding: 14,
+            borderRadius: 10,
+            marginBottom: 10,
+        },
+        fertilizerHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 10,
+        },
+        fertilizerType: {
+            color: '#8B5CF6',
+            fontSize: 14,
+            fontWeight: '600',
+        },
+        fertilizerProduct: {
+            color: colors.text,
+            fontSize: 14,
+        },
+        fertilizerDetails: {
+            gap: 4,
+        },
+        fertilizerDetail: {
+            color: colors.textSecondary,
+            fontSize: 13,
+        },
+        organicOptionsCard: {
+            backgroundColor: organicBackground,
+            padding: 14,
+            borderRadius: 10,
+        },
+        organicOptionsTitle: {
+            color: colors.primary,
+            fontSize: 14,
+            fontWeight: '600',
+            marginBottom: 8,
+        },
+        organicOption: {
+            color: organicText,
+            fontSize: 13,
+            marginBottom: 4,
+        },
+        cropCategory: {
+            marginBottom: 16,
+        },
+        cropCategoryHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 10,
+        },
+        cropCategoryIcon: {
+            fontSize: 18,
+        },
+        cropCategoryTitle: {
+            fontSize: 16,
+            fontWeight: '600',
+        },
+        cropItem: {
+            backgroundColor: colors.inputBackground,
+            padding: 12,
+            borderRadius: 10,
+            marginBottom: 8,
+        },
+        cropName: {
+            color: colors.text,
+            fontSize: 15,
+            fontWeight: '600',
+            marginBottom: 4,
+        },
+        cropReason: {
+            color: colors.textSecondary,
+            fontSize: 13,
+        },
+        cropTips: {
+            color: '#16A34A',
+            fontSize: 12,
+            marginTop: 6,
+        },
+        cropPrecaution: {
+            color: '#F59E0B',
+            fontSize: 12,
+            marginTop: 6,
+        },
+        priorityCard: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            backgroundColor: priorityBackground,
+            padding: 12,
+            borderRadius: 10,
+            marginBottom: 16,
+        },
+        priorityText: {
+            color: priorityText,
+            fontSize: 14,
+            fontWeight: '600',
+        },
+        improvementSection: {
+            marginBottom: 16,
+        },
+        improvementTitle: {
+            color: colors.text,
+            fontSize: 14,
+            fontWeight: '600',
+            marginBottom: 8,
+        },
+        improvementItem: {
+            color: colors.textSecondary,
+            fontSize: 13,
+            marginBottom: 4,
+        },
+        notesCard: {
+            backgroundColor: colors.surface,
+            padding: 16,
+            borderRadius: 12,
+            marginTop: 8,
+        },
+        notesTitle: {
+            color: colors.text,
+            fontSize: 15,
+            fontWeight: '600',
+            marginBottom: 8,
+        },
+        notesText: {
+            color: colors.textSecondary,
+            fontSize: 14,
+            lineHeight: 20,
+        },
+        newAnalysisButton: {
+            position: 'absolute',
+            bottom: 20,
+            right: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            backgroundColor: colors.primary,
+            paddingHorizontal: 20,
+            paddingVertical: 14,
+            borderRadius: 30,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8,
+        },
+        newAnalysisText: {
+            color: '#fff',
+            fontSize: 16,
+            fontWeight: '600',
+        },
 
-    // History styles
-    historyContainer: {
-        flex: 1,
-        padding: 16,
-    },
-    emptyHistory: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 60,
-        gap: 12,
-    },
-    emptyHistoryText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    emptyHistorySubtext: {
-        color: '#64748b',
-        fontSize: 14,
-    },
-    historyCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#1e293b',
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 12,
-        gap: 14,
-    },
-    historyImage: {
-        width: 70,
-        height: 70,
-        borderRadius: 10,
-    },
-    historyInfo: {
-        flex: 1,
-    },
-    historyType: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    historyScore: {
-        color: '#16A34A',
-        fontSize: 14,
-    },
-    historyDate: {
-        color: '#64748b',
-        fontSize: 12,
-        marginTop: 4,
-    },
-});
+        // History styles
+        historyContainer: {
+            flex: 1,
+            padding: 16,
+        },
+        emptyHistory: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 60,
+            gap: 12,
+        },
+        emptyHistoryText: {
+            color: colors.text,
+            fontSize: 18,
+            fontWeight: '600',
+        },
+        emptyHistorySubtext: {
+            color: colors.textSecondary,
+            fontSize: 14,
+        },
+        historyCard: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.surface,
+            padding: 12,
+            borderRadius: 12,
+            marginBottom: 12,
+            gap: 14,
+        },
+        historyImage: {
+            width: 70,
+            height: 70,
+            borderRadius: 10,
+        },
+        historyInfo: {
+            flex: 1,
+        },
+        historyType: {
+            color: colors.text,
+            fontSize: 16,
+            fontWeight: '600',
+            marginBottom: 4,
+        },
+        historyScore: {
+            color: colors.primary,
+            fontSize: 14,
+        },
+        historyDate: {
+            color: colors.textSecondary,
+            fontSize: 12,
+            marginTop: 4,
+        },
+    });
+};
