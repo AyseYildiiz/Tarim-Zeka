@@ -6,9 +6,9 @@ import {
     Pressable,
     StyleSheet,
     Alert,
-    SafeAreaView,
     StatusBar,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import { API_URL } from "../config";
 import { useTheme } from "../context/ThemeContext";
