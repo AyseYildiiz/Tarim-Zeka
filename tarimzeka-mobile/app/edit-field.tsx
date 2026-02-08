@@ -129,7 +129,7 @@ export default function EditFieldScreen() {
                 router.back();
             }
         } catch (error) {
-            console.error('Load field error:', error);
+
             Alert.alert('Hata', 'Bağlantı hatası');
             router.back();
         } finally {
@@ -168,7 +168,7 @@ export default function EditFieldScreen() {
             setLocation(locationText || 'Konum alındı');
 
         } catch (error) {
-            console.error('Location error:', error);
+
             Alert.alert('Hata', 'Konum alınamadı');
         } finally {
             setGettingLocation(false);
@@ -236,7 +236,7 @@ export default function EditFieldScreen() {
                 Alert.alert('Hata', data.error || 'Tarla güncellenemedi');
             }
         } catch (error) {
-            console.error('Update field error:', error);
+
             Alert.alert('Hata', 'Bağlantı hatası');
         } finally {
             setLoading(false);

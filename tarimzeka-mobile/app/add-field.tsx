@@ -126,7 +126,7 @@ export default function AddFieldScreen() {
             setLocation(locationText || 'Konum alındı');
 
         } catch (error) {
-            console.error('Location error:', error);
+
             Alert.alert('Hata', 'Konum alınamadı');
         } finally {
             setGettingLocation(false);
@@ -194,7 +194,7 @@ export default function AddFieldScreen() {
                 Alert.alert('Hata', data.error || 'Tarla eklenemedi');
             }
         } catch (error) {
-            console.error('Add field error:', error);
+
             Alert.alert('Hata', 'Bağlantı hatası');
         } finally {
             setLoading(false);

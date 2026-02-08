@@ -28,16 +28,7 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Cloudinary bağlantısını kontrol et
-console.log('☁️ Cloudinary Config:', {
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? '✅ Set' : '❌ Missing',
-    api_key: process.env.CLOUDINARY_API_KEY ? '✅ Set' : '❌ Missing',
-    api_secret: process.env.CLOUDINARY_API_SECRET ? '✅ Set' : '❌ Missing'
-});
-
-if (!process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME === 'your_actual_cloud_name') {
-    console.warn('⚠️ Cloudinary yapılandırılmamış! .env dosyasını kontrol edin.');
-}
+// Cloudinary kontrolü sessiz - startup'ta hata vermeden devam et
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -52,12 +43,9 @@ const authenticateToken = (req, res, next) => {
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
-            console.error('❌ Token verification error:', err.message);
             return res.status(403).json({ error: 'Geçersiz token' });
         }
-
-        console.log('✅ Token decoded:', user);
-        req.user = user;  // user'da userId var
+        req.user = user;
         next();
     });
 };
@@ -127,7 +115,7 @@ app.post('/api/auth/register', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Register error:', error);
+
         res.status(500).json({ error: 'Kayıt sırasında hata oluştu' });
     }
 });
@@ -159,7 +147,7 @@ app.post('/api/auth/login', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
+
         res.status(500).json({ error: 'Giriş sırasında hata oluştu' });
     }
 });
@@ -233,13 +221,10 @@ app.post('/api/auth/forgot-password', async (req, res) => {
                 text,
                 html,
             });
-        } else {
-            console.warn('SMTP ayarlari eksik. Reset kodu:', token);
         }
 
         return res.json({ message: 'Eğer hesap varsa link gönderildi' });
     } catch (error) {
-        console.error('Forgot password error:', error);
         res.status(500).json({ error: 'Sifre sifirlama basarisiz' });
     }
 });
@@ -275,7 +260,6 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
         return res.json({ message: 'Sifre guncellendi' });
     } catch (error) {
-        console.error('Reset password error:', error);
         res.status(500).json({ error: 'Sifre sifirlama basarisiz' });
     }
 });
@@ -290,8 +274,6 @@ app.get('/api/location/search', authenticateToken, async (req, res) => {
         if (!query || query.length < 2) {
             return res.status(400).json({ error: 'Arama terimi en az 2 karakter olmalı' });
         }
-
-        console.log('🔍 Location search:', query);
 
         // Birden fazla arama stratejisi kullan
         const searchStrategies = [
@@ -341,7 +323,7 @@ app.get('/api/location/search', authenticateToken, async (req, res) => {
                 // Rate limiting için kısa bekleme
                 await new Promise(resolve => setTimeout(resolve, 100));
             } catch (err) {
-                console.log('Search strategy failed:', err.message);
+                // Search strategy failed - continue with next
             }
         }
 
@@ -353,8 +335,6 @@ app.get('/api/location/search', authenticateToken, async (req, res) => {
             }
         });
         allResults = Array.from(uniqueMap.values());
-
-        console.log(`📊 Raw results: ${allResults.length}`);
 
         const results = allResults.map((item, index) => {
             const address = item.address || {};
@@ -622,16 +602,9 @@ app.get('/api/location/search', authenticateToken, async (req, res) => {
             }
         }
 
-        console.log(`✅ Found ${uniqueResults.length} unique results for "${query}"`);
-        console.log(`   Types: POI=${uniqueResults.filter(r => r.type === 'poi').length}, ` +
-            `Building=${uniqueResults.filter(r => r.type === 'building').length}, ` +
-            `Street=${uniqueResults.filter(r => r.type === 'street').length}, ` +
-            `Neighborhood=${uniqueResults.filter(r => r.type === 'neighborhood').length}`);
-
         res.json(uniqueResults.slice(0, 20));
     } catch (error) {
-        console.error('❌ Location search error:', error.message);
-        res.status(500).json({ error: 'Konum araması başarısız', details: error.message });
+        res.status(500).json({ error: 'Konum araması başarısız' });
     }
 });
 
@@ -643,8 +616,6 @@ app.get('/api/location/reverse', authenticateToken, async (req, res) => {
         if (!lat || !lon) {
             return res.status(400).json({ error: 'Koordinatlar gerekli' });
         }
-
-        console.log('📍 Reverse geocoding:', lat, lon);
 
         const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
             params: {
@@ -687,8 +658,6 @@ app.get('/api/location/reverse', authenticateToken, async (req, res) => {
             ? addressParts.join(', ')
             : data.display_name || `${lat}, ${lon}`;
 
-        console.log('✅ Reverse geocode result:', formattedAddress);
-
         res.json({
             address: formattedAddress,
             fullAddress: data.display_name,
@@ -705,8 +674,7 @@ app.get('/api/location/reverse', authenticateToken, async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('❌ Reverse geocoding error:', error.message);
-        res.status(500).json({ error: 'Adres bulunamadı', details: error.message });
+        res.status(500).json({ error: 'Adres bulunamadı' });
     }
 });
 
@@ -761,7 +729,7 @@ app.get('/api/weather/current', authenticateToken, async (req, res) => {
 
         res.json(updated);
     } catch (error) {
-        console.error('Weather API error:', error);
+
         res.status(500).json({ error: 'Hava durumu alınamadı' });
     }
 });
@@ -890,7 +858,7 @@ app.get('/api/weather/forecast', authenticateToken, async (req, res) => {
             timestamp: new Date().toISOString()
         });
     } catch (error) {
-        console.error('Weather forecast error:', error);
+
         res.status(500).json({ error: 'Hava durumu tahmini alınamadı' });
     }
 });
@@ -939,7 +907,7 @@ app.post('/api/fields/:fieldId/calculate-irrigation-schedule', authenticateToken
             fieldId
         });
     } catch (error) {
-        console.error('Calculate irrigation schedule error:', error);
+
         res.status(500).json({ error: 'Sulama takvimi hesaplanamadı' });
     }
 });
@@ -969,7 +937,7 @@ app.post('/api/fields', authenticateToken, async (req, res) => {
 
         res.json(field);
     } catch (error) {
-        console.error('Field creation error:', error);
+
         res.status(500).json({ error: 'Tarla eklenemedi' });
     }
 });
@@ -999,7 +967,7 @@ app.get('/api/fields', authenticateToken, async (req, res) => {
 
         res.json(fields);
     } catch (error) {
-        console.error('Get fields error:', error);
+
         res.status(500).json({ error: 'Tarlalar getirilemedi' });
     }
 });
@@ -1032,7 +1000,7 @@ app.get('/api/fields/:id', authenticateToken, async (req, res) => {
 
         res.json(field);
     } catch (error) {
-        console.error('Get field error:', error);
+
         res.status(500).json({ error: 'Tarla bilgisi alınamadı' });
     }
 });
@@ -1097,17 +1065,13 @@ app.put('/api/fields/:id', authenticateToken, async (req, res) => {
                     updatedField.latitude,
                     updatedField.longitude
                 );
-
-                console.log(`Sulama takvimi yeniden hesaplandı: ${updatedField.name}`);
             } catch (scheduleError) {
-                console.error('Schedule recalculation error:', scheduleError);
                 // Hata olsa bile field update başarılı sayılsın
             }
         }
 
         res.json(updatedField);
     } catch (error) {
-        console.error('Update field error:', error);
         res.status(500).json({ error: 'Tarla güncellenemedi' });
     }
 });
@@ -1139,7 +1103,7 @@ app.delete('/api/fields/:id', authenticateToken, async (req, res) => {
 
         res.json({ message: 'Tarla silindi' });
     } catch (error) {
-        console.error('Delete field error:', error);
+
         res.status(500).json({ error: 'Tarla silinemedi' });
     }
 });
@@ -1149,12 +1113,7 @@ app.delete('/api/fields/:id', authenticateToken, async (req, res) => {
 // Gelişmiş Toprak Analizi
 app.post('/api/soil-analysis', authenticateToken, upload.single('image'), async (req, res) => {
     try {
-        console.log('🌱 Starting soil analysis...');
-        console.log('👤 User ID:', req.user?.userId);
-        console.log('📁 File received:', req.file ? '✅ Yes' : '❌ No');
-
         if (!req.file) {
-            console.error('❌ No file uploaded');
             return res.status(400).json({ error: 'No image file provided' });
         }
 
@@ -1179,8 +1138,6 @@ app.post('/api/soil-analysis', authenticateToken, upload.single('image'), async 
             fieldId = latestField.id;
         }
 
-        console.log('📌 Using fieldId:', fieldId);
-
         // Cloudinary upload
         const cloudinaryResult = await new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(
@@ -1193,12 +1150,7 @@ app.post('/api/soil-analysis', authenticateToken, upload.single('image'), async 
             stream.end(req.file.buffer);
         });
 
-        console.log('📸 Image uploaded:', cloudinaryResult.secure_url);
-
-        // OpenAI API call - İNGİLİZCE PROMPT
-        console.log('🤖 Calling OpenAI Vision API...');
-        console.log('🔑 API Key exists:', !!process.env.OPENAI_API_KEY);
-
+        // OpenAI API call
         const apiResponse = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
@@ -1329,10 +1281,7 @@ Markdown kullanma. Ek açıklama ekleme. TÜM metin alanları Türkçe olmalı.
             }
         );
 
-        console.log('✅ AI Response received');
-
         const content = apiResponse.data.choices[0].message.content;
-        console.log('📝 Content preview:', content.substring(0, 150));
 
         // Parse JSON - Markdown code blocks'u temizle
         let analysis;
@@ -1342,18 +1291,10 @@ Markdown kullanma. Ek açıklama ekleme. TÜM metin alanları Türkçe olmalı.
                 .replace(/```\n?/g, '')
                 .trim();
 
-            console.log('📝 Cleaned content preview:', cleanContent.substring(0, 100));
-
             analysis = JSON.parse(cleanContent);
-            console.log('✅ JSON parsed successfully');
         } catch (parseError) {
-            console.error('❌ JSON Parse Error:', parseError.message);
-            console.error('📝 Full content:', content);
-
             return res.status(500).json({
-                error: 'Failed to parse AI response',
-                details: parseError.message,
-                rawContent: content.substring(0, 300)
+                error: 'Failed to parse AI response'
             });
         }
 
@@ -1404,7 +1345,7 @@ Markdown kullanma. Ek açıklama ekleme. TÜM metin alanları Türkçe olmalı.
             analysisDate: soilAnalysis.analysisDate
         });
     } catch (error) {
-        console.error('❌ Soil analysis error:', error.message);
+
         res.status(500).json({ error: 'Soil analysis failed', message: error.message });
     }
 });
@@ -1462,7 +1403,7 @@ app.get('/api/soil-analysis/history', authenticateToken, async (req, res) => {
         })));
 
     } catch (error) {
-        console.error('Get analysis history error:', error);
+
         res.status(500).json({ error: 'Analiz geçmişi alınamadı' });
     }
 });
@@ -1494,7 +1435,7 @@ app.get('/api/soil-analysis/:id', authenticateToken, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Get analysis error:', error);
+
         res.status(500).json({ error: 'Analiz bilgisi alınamadı' });
     }
 });
@@ -1537,7 +1478,7 @@ app.get('/api/irrigation/schedule', authenticateToken, async (req, res) => {
 
         res.json(schedules);
     } catch (error) {
-        console.error('Get schedule error:', error);
+
         res.status(500).json({ error: 'Takvim getirilemedi' });
     }
 });
@@ -1619,7 +1560,7 @@ app.patch('/api/irrigation/schedule/:scheduleId/complete', authenticateToken, as
             message: 'Sulama tamamlandı'
         });
     } catch (error) {
-        console.error('Complete irrigation error:', error);
+
         res.status(500).json({ error: 'Sulama kaydedilemedi' });
     }
 });
@@ -1672,7 +1613,7 @@ app.get('/api/savings/stats', authenticateToken, async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Get savings error:', error);
+
         res.status(500).json({ error: 'İstatistikler alınamadı' });
     }
 });
@@ -1710,7 +1651,7 @@ app.get('/api/savings', authenticateToken, async (req, res) => {
             energySaved: Math.round(totalEnergySaved * 100) / 100
         });
     } catch (error) {
-        console.error('Get savings error:', error);
+
         res.status(500).json({
             totalSaved: 0,
             waterSaved: 0,
@@ -1732,7 +1673,7 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
 
         res.json(notifications);
     } catch (error) {
-        console.error('Get notifications error:', error);
+
         res.status(500).json({ error: 'Bildirimler getirilemedi' });
     }
 });
@@ -1755,7 +1696,7 @@ app.patch('/api/notifications/:id/read', authenticateToken, async (req, res) => 
 
         res.json(updatedNotification);
     } catch (error) {
-        console.error('Update notification error:', error);
+
         res.status(500).json({ error: 'Bildirim güncellenemedi' });
     }
 });
@@ -1777,7 +1718,7 @@ app.delete('/api/notifications/:id', authenticateToken, async (req, res) => {
 
         res.json({ message: 'Bildirim silindi' });
     } catch (error) {
-        console.error('Delete notification error:', error);
+
         res.status(500).json({ error: 'Bildirim silinemedi' });
     }
 });
@@ -1797,7 +1738,7 @@ async function createNotification(userId, type, title, message, scheduledFor = n
         });
         return notification;
     } catch (error) {
-        console.error('Create notification error:', error);
+
         return null;
     }
 }
@@ -1820,7 +1761,7 @@ app.delete('/api/notifications/cleanup/old', authenticateToken, async (req, res)
             deletedCount: deleted.count
         });
     } catch (error) {
-        console.error('Cleanup notifications error:', error);
+
         res.status(500).json({ error: 'Eski bildirimler silinemedi' });
     }
 });
@@ -1835,7 +1776,7 @@ app.patch('/api/notifications/mark-all/read', authenticateToken, async (req, res
 
         res.json({ message: 'Tüm bildirimler okundu olarak işaretlendi' });
     } catch (error) {
-        console.error('Mark all read error:', error);
+
         res.status(500).json({ error: 'İşlem başarısız oldu' });
     }
 });
@@ -1858,7 +1799,7 @@ app.post('/api/notifications/test', authenticateToken, async (req, res) => {
             notification
         });
     } catch (error) {
-        console.error('Test notification error:', error);
+
         res.status(500).json({ error: 'Test bildirimi oluşturulamadı' });
     }
 });
@@ -1893,7 +1834,7 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
 
         res.json(user);
     } catch (error) {
-        console.error('Get profile error:', error);
+
         res.status(500).json({ error: 'Profil bilgisi alınamadı' });
     }
 });
@@ -1917,7 +1858,7 @@ app.put('/api/user/profile', authenticateToken, async (req, res) => {
 
         res.json(updatedUser);
     } catch (error) {
-        console.error('Update profile error:', error);
+
         res.status(500).json({ error: 'Profil güncellenemedi' });
     }
 });
@@ -1961,7 +1902,7 @@ app.post('/api/user/change-password', authenticateToken, async (req, res) => {
 
         res.json({ message: 'Şifre başarıyla değiştirildi' });
     } catch (error) {
-        console.error('Change password error:', error);
+
         res.status(500).json({ error: 'Şifre değiştirilemedi' });
     }
 });
@@ -2091,7 +2032,7 @@ Markdown kullanma. Ek açıklama ekleme. TÜM metin alanları Türkçe olmalı.
             fullResponse: content
         };
     } catch (error) {
-        console.error('OpenAI API error:', error);
+
         // Fallback basic analysis
         return {
             soilType: 'tınlı',
@@ -2194,7 +2135,7 @@ Be conservative, realistic for field irrigation. If rain is high, use lower wate
             recommendedTimeRange
         };
     } catch (error) {
-        console.error('AI water profile error:', error?.response?.data || error.message);
+
         return null;
     }
 }
@@ -2508,7 +2449,7 @@ async function createAIIrrigationSchedule(fieldId, cropType, soilType, lat, lon)
 
         return schedules;
     } catch (error) {
-        console.error('Create AI irrigation schedule error:', error);
+
         // Fallback to basic schedule
         return await createIrrigationSchedule(fieldId, cropType, soilType, lat, lon);
     }
@@ -2631,7 +2572,7 @@ async function createIrrigationSchedule(fieldId, cropType, soilType, lat, lon) {
 
         return schedules;
     } catch (error) {
-        console.error('Create irrigation schedule error:', error);
+
         return [];
     }
 }
@@ -2653,7 +2594,7 @@ async function getWeatherForLocation(location) {
 
         return null;
     } catch (error) {
-        console.error('Get weather error:', error);
+
         return null;
     }
 }
@@ -2716,18 +2657,12 @@ app.use((req, res) => {
 // ============ ERROR HANDLER ============
 
 app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-    res.status(500).json({ error: 'Sunucu hatası', details: err.message });
+    res.status(500).json({ error: 'Sunucu hatası' });
 });
 
 // ============ START SERVER ============
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 TarımZeka API running on port ${PORT}`);
-    console.log(`📍 Location search: /api/location/search`);
-    console.log(`📍 Reverse geocoding: /api/location/reverse`);
-    console.log(`🌤️ Weather: /api/weather/current`);
-    console.log(`🌾 Fields: /api/fields`);
-    console.log(`💧 Irrigation: /api/irrigation/schedule`);
+    console.log(`TarimZeka API running on port ${PORT}`);
 });

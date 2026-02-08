@@ -72,7 +72,7 @@ export default function SettingsScreen() {
                 setLocation(data.location || '');
             }
         } catch (error) {
-            console.error('Load profile error:', error);
+
             Alert.alert('Hata', 'Profil yüklenemedi');
         } finally {
             setLoading(false);
@@ -110,7 +110,7 @@ export default function SettingsScreen() {
                 Alert.alert('Hata', 'Profil güncellenemedi');
             }
         } catch (error) {
-            console.error('Update profile error:', error);
+
             Alert.alert('Hata', 'Bağlantı hatası');
         } finally {
             setUpdatingProfile(false);
@@ -159,7 +159,7 @@ export default function SettingsScreen() {
                 Alert.alert('Hata', error.error || 'Şifre değiştirilemedi');
             }
         } catch (error) {
-            console.error('Change password error:', error);
+
             Alert.alert('Hata', 'Bağlantı hatası');
         } finally {
             setUpdatingPassword(false);
@@ -177,7 +177,7 @@ export default function SettingsScreen() {
                         await signOut();
                         router.replace('/login' as any);
                     } catch (error) {
-                        console.error('Logout error:', error);
+
                         Alert.alert('Hata', 'Çıkış yapılamadı');
                     }
                 }

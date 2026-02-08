@@ -138,7 +138,7 @@ export default function SoilAnalysisScreen() {
                 })));
             }
         } catch (error) {
-            console.error('Load history error:', error);
+
         } finally {
             setLoadingHistory(false);
         }
@@ -179,7 +179,7 @@ export default function SoilAnalysisScreen() {
                 setResult(null);
             }
         } catch (error) {
-            console.error('Image pick error:', error);
+
             Alert.alert('Hata', 'Görsel seçilemedi');
         }
     };
@@ -205,8 +205,8 @@ export default function SoilAnalysisScreen() {
                 name: 'soil.jpg',
             } as any);
 
-            console.log('📤 API URL:', API_URL);
-            console.log('📤 Sending request to:', `${API_URL}/soil-analysis`);
+
+
 
             const response = await fetch(`${API_URL}/soil-analysis`, {
                 method: 'POST',
@@ -216,14 +216,14 @@ export default function SoilAnalysisScreen() {
                 body: formData,
             });
 
-            console.log('✅ Response status:', response.status);
+
 
             if (!response.ok) {
                 throw new Error(`HTTP Error: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('✅ Response data:', data);
+
 
             setResult({
                 id: data.id,
@@ -234,7 +234,7 @@ export default function SoilAnalysisScreen() {
 
             Alert.alert('Başarılı', 'Analiz tamamlandı!');
         } catch (error: any) {
-            console.error('❌ Network Error:', error.message);
+
             Alert.alert('Hata', `Analiz başarısız: ${error.message}`);
         } finally {
             setAnalyzing(false);

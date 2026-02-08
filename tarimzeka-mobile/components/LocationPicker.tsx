@@ -143,7 +143,7 @@ export default function LocationPicker({
                 return fallbackSearch(query);
             }
         } catch (error) {
-            console.error('Search error:', error);
+
             return fallbackSearch(query);
         } finally {
             setSearching(false);
@@ -284,7 +284,7 @@ export default function LocationPicker({
             mapRef.current?.animateToRegion(newRegion, 500);
             await getAddressFromCoords(location.coords.latitude, location.coords.longitude);
         } catch (error) {
-            console.error('Get location error:', error);
+
         }
     };
 

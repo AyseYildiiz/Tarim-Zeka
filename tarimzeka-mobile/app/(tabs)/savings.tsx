@@ -40,7 +40,7 @@ export default function SavingsScreen() {
                 setSavings(data);
             }
         } catch (error) {
-            console.error('Savings fetch error:', error);
+
         } finally {
             setLoading(false);
         }

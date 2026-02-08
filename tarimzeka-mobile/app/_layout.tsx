@@ -31,18 +31,18 @@ function RootNavigator() {
       segments[0] === "forgot-password" ||
       segments[0] === "reset-password";
 
-    console.log("🔄 Segment:", segments[0], "Token:", token, "InAuthPage:", inAuthPage);
+
 
     if (!token) {
       // Token yoksa ve auth sayfasında değilse login'e yönlendir
       if (!inAuthPage) {
-        console.log("➡️ Redirecting to login");
+
         router.replace("/login");
       }
     } else {
       // Token varsa ve auth sayfasındaysa tabs'e yönlendir
       if (inAuthPage) {
-        console.log("➡️ Redirecting to tabs");
+
         router.replace("/(tabs)");
       }
     }

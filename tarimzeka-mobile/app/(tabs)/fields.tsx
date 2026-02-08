@@ -53,7 +53,7 @@ export default function FieldsScreen() {
                 setFields(Array.isArray(data) ? data : []);
             }
         } catch (error) {
-            console.error('Load fields error:', error);
+
         } finally {
             setLoading(false);
         }
@@ -82,7 +82,7 @@ export default function FieldsScreen() {
                                 Alert.alert('Hata', 'Tarla silinemedi');
                             }
                         } catch (error) {
-                            console.error('Delete field error:', error);
+
                             Alert.alert('Hata', 'Bağlantı hatası');
                         }
                     }

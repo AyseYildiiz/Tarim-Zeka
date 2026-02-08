@@ -76,7 +76,7 @@ export default function IrrigationScheduleScreen() {
                 setSchedules(schedules);
             }
         } catch (error) {
-            console.error('Load data error:', error);
+
             Alert.alert('Hata', 'Veriler yüklenemedi');
         } finally {
             setLoading(false);
@@ -107,7 +107,7 @@ export default function IrrigationScheduleScreen() {
                 Alert.alert('Hata', 'Takvim güncellenemedi');
             }
         } catch (error) {
-            console.error('Calculate schedule error:', error);
+
             Alert.alert('Hata', 'Bağlantı hatası');
         } finally {
             setCalculating(false);
@@ -135,19 +135,19 @@ export default function IrrigationScheduleScreen() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('API Error:', response.status, errorData);
+
                 Alert.alert('Hata', `Sulama tamamlanamadı: ${errorData.error || 'Bilinmeyen hata'}`);
                 return;
             }
 
             const data = await response.json();
-            console.log('Complete response:', data);
+
 
             // Immediately refresh data from server to ensure consistency
             await loadData();
             Alert.alert('Başarılı', 'Sulama tamamlandı');
         } catch (error) {
-            console.error('Complete schedule error:', error);
+
             Alert.alert('Hata', 'Bağlantı hatası: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'));
         }
     };

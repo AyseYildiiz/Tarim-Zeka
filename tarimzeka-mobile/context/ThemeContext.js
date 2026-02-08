@@ -26,7 +26,7 @@ export const ThemeProvider = ({ children }) => {
                 setIsDark(savedTheme === 'dark');
             }
         } catch (error) {
-            console.error('Load theme error:', error);
+
         } finally {
             setThemeLoaded(true);
         }
@@ -38,7 +38,7 @@ export const ThemeProvider = ({ children }) => {
             await AsyncStorage.setItem('theme', newTheme);
             setIsDark(!isDark);
         } catch (error) {
-            console.error('Toggle theme error:', error);
+
         }
     };
 

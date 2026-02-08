@@ -148,14 +148,14 @@ export default function CalendarScreen() {
                             });
                         }
                     } catch (error) {
-                        console.error(`Error loading schedules for field ${field.id}:`, error);
+
                     }
                 }
 
                 setTasks(allTasks.sort((a, b) => a.date.localeCompare(b.date)));
             }
         } catch (error) {
-            console.error('Load data error:', error);
+
         } finally {
             setLoading(false);
         }
@@ -343,14 +343,14 @@ export default function CalendarScreen() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('API Error:', response.status, errorData);
+
                 return;
             }
 
             // Server truth: tüm verileri yeniden yükle
             await loadData();
         } catch (error) {
-            console.error('Toggle task complete error:', error);
+
         }
     };
 

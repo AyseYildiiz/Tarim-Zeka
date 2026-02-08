@@ -23,7 +23,7 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
-    console.log("🔓 Login sayfası render edildi");
+
 
     const onLogin = async () => {
         const result = await signIn(email, password);

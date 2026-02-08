@@ -19,7 +19,7 @@ export default function Register() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    console.log("📝 Register sayfası render edildi");
+
 
     const onRegister = async () => {
         if (!name || !email || !password) {

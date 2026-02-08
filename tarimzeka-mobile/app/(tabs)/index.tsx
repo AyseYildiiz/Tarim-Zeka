@@ -105,7 +105,7 @@ export default function HomeScreen() {
             }
             await fetchFields();
         } catch (error) {
-            console.error('Load data error:', error);
+
         } finally {
             setLoading(false);
         }
@@ -123,7 +123,7 @@ export default function HomeScreen() {
                 setWeather(data);
             }
         } catch (error) {
-            console.error('Weather fetch error:', error);
+
             // Mock data for testing
             setWeather({
                 temperature: 24,
@@ -181,7 +181,7 @@ export default function HomeScreen() {
                                 }
                             }
                         } catch (error) {
-                            console.error(`Schedule fetch error for field ${field.id}:`, error);
+
                         }
 
                         return {
@@ -199,7 +199,7 @@ export default function HomeScreen() {
                 setFields(fieldsWithRecommendations);
             }
         } catch (error) {
-            console.error('Fields fetch error:', error);
+
         }
     };
 

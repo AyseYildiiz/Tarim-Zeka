@@ -103,7 +103,7 @@ export default function NotificationsScreen() {
 
             setNotifications(formattedNotifications);
         } catch (error) {
-            console.error('Load notifications error:', error);
+
             // Hata durumunda boş liste göster
             setNotifications([]);
         } finally {
@@ -133,7 +133,7 @@ export default function NotificationsScreen() {
                 prev.map(n => n.id === id ? { ...n, read: true } : n)
             );
         } catch (error) {
-            console.error('Mark as read error:', error);
+
         }
     };
 
@@ -151,7 +151,7 @@ export default function NotificationsScreen() {
 
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         } catch (error) {
-            console.error('Mark all as read error:', error);
+
         }
     };
 
@@ -169,7 +169,7 @@ export default function NotificationsScreen() {
 
             setNotifications(prev => prev.filter(n => n.id !== id));
         } catch (error) {
-            console.error('Delete notification error:', error);
+
         }
     };
 
