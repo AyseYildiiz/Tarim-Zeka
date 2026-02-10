@@ -138,7 +138,18 @@ TÜM metin alanları Türkçe olmalı. Her kategori için EN AZ 3-4 ürün öner
             analysisDate: soilAnalysis.analysisDate
         });
     } catch (error) {
-        res.status(500).json({ error: 'Soil analysis failed', message: error.message });
+        // Detaylı loglar
+        console.error('Soil analysis error:', error);
+        if (error.response) {
+            console.error('OpenAI response:', error.response.data);
+        }
+        if (error.config) {
+            console.error('OpenAI config:', error.config);
+        }
+        if (error.request) {
+            console.error('OpenAI request:', error.request);
+        }
+        res.status(500).json({ error: 'Soil analysis failed', message: error.message, details: error.response?.data || null });
     }
 });
 

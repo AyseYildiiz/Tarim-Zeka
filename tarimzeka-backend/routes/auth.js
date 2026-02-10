@@ -64,6 +64,7 @@ router.post('/login', async (req, res) => {
 // Forgot Password
 router.post('/forgot-password', async (req, res) => {
     try {
+        console.log('Şifre sıfırlama isteği alındı:', req.body.email);
         const { email } = req.body;
         if (!email) {
             return res.status(400).json({ error: 'E-posta gerekli' });
@@ -85,7 +86,7 @@ router.post('/forgot-password', async (req, res) => {
 
         const transporter = getMailTransporter();
         const fromAddress = process.env.SMTP_FROM || 'no-reply@tarimzeka.com';
-
+        console.log('Mail transporter:', transporter ? 'Hazır' : 'YOK');
         if (transporter) {
             const subject = 'TarimZeka - Sifre Sifirlama';
             const text = [
@@ -112,8 +113,15 @@ router.post('/forgot-password', async (req, res) => {
         </div>
     </body>
 </html>`;
-
-            await transporter.sendMail({ from: fromAddress, to: user.email, subject, text, html });
+            try {
+                console.log('Mail gönderiliyor:', user.email);
+                await transporter.sendMail({ from: fromAddress, to: user.email, subject, text, html });
+                console.log('Mail gönderildi:', user.email);
+            } catch (mailError) {
+                console.error('Mail gönderme hatası:', mailError);
+            }
+        } else {
+            console.error('Mail transporter YOK, SMTP env eksik!');
         }
 
         return res.json({ message: 'Eğer hesap varsa link gönderildi' });
