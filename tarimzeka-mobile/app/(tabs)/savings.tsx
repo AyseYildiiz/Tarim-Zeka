@@ -13,10 +13,22 @@ import { API_URL } from '../../config';
 import { useTheme } from '../../context/ThemeContext';
 
 interface SavingsData {
-    totalSaved: number;
-    waterSaved: number;
-    fertilizerSaved: number;
-    energySaved: number;
+    totalWaterSaved: number;
+    totalMoneySaved: number;
+    savingPercentage: number;
+    totalSmartWater: number;
+    totalTraditionalWater: number;
+    potentialWaterSaved?: number;
+    potentialMoneySaved?: number;
+    potentialSmartWater?: number;
+    potentialTraditionalWater?: number;
+    weeklyStats: { week: string; waterSaved: number }[];
+    monthlyStats: { month: string; waterSaved: number }[];
+    totalFieldArea: number;
+    fieldCount: number;
+    completedIrrigations: number;
+    totalSchedules?: number;
+    comparisonNote: string;
 }
 
 export default function SavingsScreen() {
@@ -52,6 +64,30 @@ export default function SavingsScreen() {
         setRefreshing(false);
     };
 
+    const formatWater = (liters: number): string => {
+        if (liters >= 1000000) return `${(liters / 1000000).toFixed(1)} Milyon L`;
+        if (liters >= 1000) return `${(liters / 1000).toFixed(1)} Bin L`;
+        return `${Math.round(liters)} L`;
+    };
+
+    // İki değeri aynı birimde göstermek için
+    const formatWaterPair = (value1: number, value2: number): [string, string] => {
+        const maxValue = Math.max(value1, value2);
+        if (maxValue >= 1000000) {
+            return [
+                `${(value1 / 1000000).toFixed(1)} Milyon L`,
+                `${(value2 / 1000000).toFixed(1)} Milyon L`
+            ];
+        }
+        if (maxValue >= 1000) {
+            return [
+                `${(value1 / 1000).toFixed(1)} Bin L`,
+                `${(value2 / 1000).toFixed(1)} Bin L`
+            ];
+        }
+        return [`${Math.round(value1)} L`, `${Math.round(value2)} L`];
+    };
+
     if (loading) {
         return (
             <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -66,46 +102,135 @@ export default function SavingsScreen() {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
             <View style={styles.header}>
-                <Text style={[styles.headerTitle, { color: colors.text }]}>Tasarruf Özeti</Text>
-            </View>
-
-            <View style={[styles.totalCard, { backgroundColor: colors.surface }]}
-            >
-                <Ionicons name="wallet-outline" size={48} color="#16A34A" />
-                <Text style={[styles.totalAmount, { color: colors.primary }]}>₺{savings?.totalSaved || 0}</Text>
-                <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Toplam Tasarruf</Text>
-            </View>
-
-            <View style={styles.statsContainer}>
-                <View style={[styles.statCard, { backgroundColor: colors.surface }]}
-                >
-                    <Ionicons name="water-outline" size={32} color="#3B82F6" />
-                    <Text style={[styles.statValue, { color: colors.text }]}>{savings?.waterSaved || 0} L</Text>
-                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Su Tasarrufu</Text>
-                </View>
-
-                <View style={[styles.statCard, { backgroundColor: colors.surface }]}
-                >
-                    <Ionicons name="leaf-outline" size={32} color="#16A34A" />
-                    <Text style={[styles.statValue, { color: colors.text }]}>{savings?.fertilizerSaved || 0} kg</Text>
-                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Gübre Tasarrufu</Text>
-                </View>
-
-                <View style={[styles.statCard, { backgroundColor: colors.surface }]}
-                >
-                    <Ionicons name="flash-outline" size={32} color="#F59E0B" />
-                    <Text style={[styles.statValue, { color: colors.text }]}>{savings?.energySaved || 0} kWh</Text>
-                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Enerji Tasarrufu</Text>
-                </View>
-            </View>
-
-            <View style={[styles.infoCard, { backgroundColor: colors.surface }]}
-            >
-                <Ionicons name="information-circle-outline" size={24} color={colors.textSecondary} />
-                <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                    Tasarruf verileri, tarla aktivitelerinize göre hesaplanmaktadır.
+                <Text style={[styles.headerTitle, { color: colors.text }]}>💧 Tasarruf Özeti</Text>
+                <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+                    {savings?.comparisonNote || 'Akıllı sulama ile tasarruf'}
                 </Text>
             </View>
+
+            {/* Ana Tasarruf Kartı */}
+            <View style={[styles.totalCard, { backgroundColor: colors.surface }]}>
+                <View style={styles.percentageCircle}>
+                    <Text style={styles.percentageText}>%{savings?.savingPercentage || 0}</Text>
+                </View>
+                {(savings?.totalMoneySaved || 0) > 0 ? (
+                    <>
+                        <Text style={[styles.totalAmount, { color: colors.primary }]}>
+                            ₺{(savings?.totalMoneySaved || 0).toFixed(2)}
+                        </Text>
+                        <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Gerçek Para Tasarrufu</Text>
+                        <Text style={[styles.waterSaved, { color: colors.text }]}>
+                            {formatWater(savings?.totalWaterSaved || 0)} su tasarrufu
+                        </Text>
+                    </>
+                ) : (
+                    <>
+                        <Text style={[styles.totalAmount, { color: '#F59E0B' }]}>
+                            ₺{(savings?.potentialMoneySaved || 0).toFixed(2)}
+                        </Text>
+                        <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Potansiyel Tasarruf</Text>
+                        <Text style={[styles.waterSaved, { color: colors.text }]}>
+                            {formatWater(savings?.potentialWaterSaved || 0)} su tasarrufu potansiyeli
+                        </Text>
+                        <Text style={[styles.potentialNote, { color: colors.textTertiary }]}>
+                            Sulamalar tamamlandıkça güncellenir
+                        </Text>
+                    </>
+                )}
+            </View>
+
+            {/* Karşılaştırma */}
+            <View style={[styles.comparisonCard, { backgroundColor: colors.surface }]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>📊 Karşılaştırma</Text>
+                <Text style={[styles.comparisonNote, { color: colors.textSecondary }]}>
+                    {savings?.comparisonNote || ''}
+                </Text>
+                {(() => {
+                    const smartWater = savings?.completedIrrigations && savings.completedIrrigations > 0
+                        ? savings.totalSmartWater || 0
+                        : savings?.potentialSmartWater || 0;
+                    const traditionalWater = savings?.completedIrrigations && savings.completedIrrigations > 0
+                        ? savings.totalTraditionalWater || 0
+                        : savings?.potentialTraditionalWater || 0;
+                    const [smartFormatted, traditionalFormatted] = formatWaterPair(smartWater, traditionalWater);
+
+                    return (
+                        <View style={styles.comparisonRow}>
+                            <View style={styles.comparisonItem}>
+                                <Ionicons name="water" size={24} color="#3B82F6" />
+                                <Text style={[styles.comparisonValue, { color: colors.text }]}>
+                                    {smartFormatted}
+                                </Text>
+                                <Text style={[styles.comparisonLabel, { color: colors.textSecondary }]}>Akıllı Sulama</Text>
+                            </View>
+                            <View style={styles.vsContainer}>
+                                <Text style={[styles.vsText, { color: colors.textTertiary }]}>vs</Text>
+                            </View>
+                            <View style={styles.comparisonItem}>
+                                <Ionicons name="water-outline" size={24} color="#EF4444" />
+                                <Text style={[styles.comparisonValue, { color: colors.text }]}>
+                                    {traditionalFormatted}
+                                </Text>
+                                <Text style={[styles.comparisonLabel, { color: colors.textSecondary }]}>Geleneksel</Text>
+                            </View>
+                        </View>
+                    );
+                })()}
+            </View>
+
+            {/* İstatistikler */}
+            <View style={styles.statsContainer}>
+                <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+                    <Ionicons name="leaf" size={28} color="#16A34A" />
+                    <Text style={[styles.statValue, { color: colors.text }]}>{savings?.fieldCount || 0}</Text>
+                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Tarla</Text>
+                </View>
+
+                <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+                    <Ionicons name="checkmark-circle" size={28} color="#3B82F6" />
+                    <Text style={[styles.statValue, { color: colors.text }]}>{savings?.completedIrrigations || 0}</Text>
+                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Sulama</Text>
+                </View>
+
+                <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+                    <Ionicons name="resize" size={28} color="#F59E0B" />
+                    <Text style={[styles.statValue, { color: colors.text }]}>{savings?.totalFieldArea || 0}</Text>
+                    <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Dönüm</Text>
+                </View>
+            </View>
+
+            {/* Haftalık İstatistik */}
+            {savings?.weeklyStats && savings.weeklyStats.length > 0 && (
+                <View style={[styles.chartCard, { backgroundColor: colors.surface }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>📅 Haftalık Tasarruf</Text>
+                    {savings.weeklyStats.slice(-4).map((stat, index) => (
+                        <View key={index} style={styles.chartRow}>
+                            <Text style={[styles.chartLabel, { color: colors.textSecondary }]}>{stat.week}</Text>
+                            <View style={styles.chartBarContainer}>
+                                <View
+                                    style={[
+                                        styles.chartBar,
+                                        {
+                                            width: `${Math.min(100, (stat.waterSaved / Math.max(...savings.weeklyStats.map(s => s.waterSaved))) * 100)}%`,
+                                            backgroundColor: colors.primary
+                                        }
+                                    ]}
+                                />
+                            </View>
+                            <Text style={[styles.chartValue, { color: colors.text }]}>{formatWater(stat.waterSaved)}</Text>
+                        </View>
+                    ))}
+                </View>
+            )}
+
+            <View style={[styles.infoCard, { backgroundColor: colors.surface }]}>
+                <Ionicons name="information-circle-outline" size={24} color={colors.textSecondary} />
+                <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                    Tasarruf, AI destekli akıllı sulama ile geleneksel sulama yöntemlerinin karşılaştırılmasıyla hesaplanır.
+                </Text>
+            </View>
+
+            <View style={{ height: 100 }} />
         </ScrollView>
     );
 }
@@ -113,13 +238,11 @@ export default function SavingsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0f172a',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#0f172a',
     },
     header: {
         padding: 20,
@@ -128,25 +251,90 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#fff',
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        marginTop: 4,
     },
     totalCard: {
-        backgroundColor: '#1e293b',
         margin: 20,
-        padding: 30,
+        marginTop: 0,
+        padding: 24,
         borderRadius: 16,
         alignItems: 'center',
     },
-    totalAmount: {
-        fontSize: 48,
+    percentageCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#16A34A20',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    percentageText: {
+        fontSize: 24,
         fontWeight: 'bold',
         color: '#16A34A',
-        marginTop: 12,
+    },
+    totalAmount: {
+        fontSize: 36,
+        fontWeight: 'bold',
     },
     totalLabel: {
-        fontSize: 16,
-        color: '#94a3b8',
+        fontSize: 14,
         marginTop: 4,
+    },
+    waterSaved: {
+        fontSize: 16,
+        marginTop: 8,
+        fontWeight: '500',
+    },
+    potentialNote: {
+        fontSize: 12,
+        marginTop: 6,
+        fontStyle: 'italic',
+    },
+    comparisonCard: {
+        margin: 20,
+        marginTop: 0,
+        padding: 16,
+        borderRadius: 12,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 6,
+    },
+    comparisonNote: {
+        fontSize: 12,
+        marginBottom: 12,
+        fontStyle: 'italic',
+    },
+    comparisonRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    comparisonItem: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    comparisonValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginTop: 4,
+    },
+    comparisonLabel: {
+        fontSize: 12,
+        marginTop: 2,
+    },
+    vsContainer: {
+        paddingHorizontal: 12,
+    },
+    vsText: {
+        fontSize: 14,
+        fontWeight: '500',
     },
     statsContainer: {
         flexDirection: 'row',
@@ -155,27 +343,55 @@ const styles = StyleSheet.create({
     },
     statCard: {
         flex: 1,
-        backgroundColor: '#1e293b',
         padding: 16,
         borderRadius: 12,
         alignItems: 'center',
     },
     statValue: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
-        color: '#fff',
         marginTop: 8,
     },
     statLabel: {
-        fontSize: 12,
-        color: '#94a3b8',
+        fontSize: 11,
         marginTop: 4,
         textAlign: 'center',
+    },
+    chartCard: {
+        margin: 20,
+        padding: 16,
+        borderRadius: 12,
+    },
+    chartRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    chartLabel: {
+        width: 70,
+        fontSize: 12,
+    },
+    chartBarContainer: {
+        flex: 1,
+        height: 16,
+        backgroundColor: '#1e293b40',
+        borderRadius: 8,
+        marginHorizontal: 8,
+        overflow: 'hidden',
+    },
+    chartBar: {
+        height: '100%',
+        borderRadius: 8,
+    },
+    chartValue: {
+        width: 60,
+        fontSize: 12,
+        fontWeight: '500',
+        textAlign: 'right',
     },
     infoCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1e293b',
         margin: 20,
         padding: 16,
         borderRadius: 12,
@@ -183,7 +399,6 @@ const styles = StyleSheet.create({
     },
     infoText: {
         flex: 1,
-        fontSize: 14,
-        color: '#94a3b8',
+        fontSize: 13,
     },
 });

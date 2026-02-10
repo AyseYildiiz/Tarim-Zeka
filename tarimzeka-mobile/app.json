@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ayseyildiz.tarimzeka"
     },
     "web": {
       "output": "static",
@@ -41,7 +42,11 @@
       ]
     ],
     "extra": {
-      "apiUrl": "https://tarimzeka-api.onrender.com/api"
+      "apiUrl": "https://tarimzeka-api.onrender.com/api",
+      "router": {},
+      "eas": {
+        "projectId": "b2579a03-f8a7-4b55-b1fa-3ffff6e9bdde"
+      }
     },
     "experiments": {
       "typedRoutes": true

@@ -80,10 +80,12 @@ model IrrigationSchedule {
   date            DateTime
   recommendedTime String   // "06:00-08:00"
   waterAmount     Float    // Litre/m²
+  actualWaterUsed Float?   // Gerçek kullanılan su
   weatherTemp     Float?
   weatherHumidity Float?
   weatherCondition String?
   status          String   @default("pending") // pending, completed, skipped
+  completedAt     DateTime?
   note            String?  @db.Text
   createdAt       DateTime @default(now())
   

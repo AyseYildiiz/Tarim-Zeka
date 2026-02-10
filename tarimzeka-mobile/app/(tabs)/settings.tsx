@@ -60,7 +60,7 @@ export default function SettingsScreen() {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem('token');
-            const response = await fetch(`${API_URL}/user/profile`, {
+            const response = await fetch(`${API_URL}/users/me`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -88,7 +88,7 @@ export default function SettingsScreen() {
 
             setUpdatingProfile(true);
             const token = await AsyncStorage.getItem('token');
-            const response = await fetch(`${API_URL}/user/profile`, {
+            const response = await fetch(`${API_URL}/users/me`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -136,7 +136,7 @@ export default function SettingsScreen() {
 
             setUpdatingPassword(true);
             const token = await AsyncStorage.getItem('token');
-            const response = await fetch(`${API_URL}/user/change-password`, {
+            const response = await fetch(`${API_URL}/users/change-password`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

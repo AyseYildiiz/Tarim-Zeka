@@ -14,6 +14,8 @@ router.get('/me', authenticateToken, async (req, res) => {
                 id: true,
                 email: true,
                 name: true,
+                phone: true,
+                location: true,
                 createdAt: true,
                 _count: { select: { fields: true } }
             }
@@ -32,7 +34,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 // Update user profile
 router.put('/me', authenticateToken, async (req, res) => {
     try {
-        const { name, email } = req.body;
+        const { name, email, phone, location } = req.body;
 
         if (email && email !== req.user.email) {
             const existing = await prisma.user.findUnique({ where: { email } });
@@ -45,9 +47,11 @@ router.put('/me', authenticateToken, async (req, res) => {
             where: { id: req.user.userId },
             data: {
                 ...(name && { name }),
-                ...(email && { email })
+                ...(email && { email }),
+                ...(phone !== undefined && { phone: phone || null }),
+                ...(location !== undefined && { location: location || null })
             },
-            select: { id: true, email: true, name: true, createdAt: true }
+            select: { id: true, email: true, name: true, phone: true, location: true, createdAt: true }
         });
 
         res.json(updated);

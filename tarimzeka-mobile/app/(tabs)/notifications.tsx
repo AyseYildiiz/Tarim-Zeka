@@ -56,9 +56,10 @@ export default function NotificationsScreen() {
             }
 
             const data = await response.json();
+            const notificationList = data.notifications || data || [];
 
             // Backend verilerini UI formatına çevir
-            const formattedNotifications: Notification[] = data.map((notif: any) => {
+            const formattedNotifications: Notification[] = notificationList.map((notif: any) => {
                 // Bildirim türünü belirle
                 let type: Notification['type'] = 'info';
                 if (notif.type === 'irrigation') {
@@ -141,7 +142,7 @@ export default function NotificationsScreen() {
         try {
             const token = await AsyncStorage.getItem('token');
 
-            await fetch(`${API_URL}/notifications/mark-all/read`, {
+            await fetch(`${API_URL}/notifications/read-all`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,

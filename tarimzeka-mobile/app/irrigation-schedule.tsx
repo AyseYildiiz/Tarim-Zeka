@@ -120,7 +120,7 @@ export default function IrrigationScheduleScreen() {
             const waterAmount = schedules.find(s => s.id === scheduleId)?.waterAmount || 0;
 
             const response = await fetch(
-                `${API_URL}/irrigation/schedule/${scheduleId}/complete`,
+                `${API_URL}/irrigation/schedules/${scheduleId}`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -128,7 +128,8 @@ export default function IrrigationScheduleScreen() {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        waterUsed: waterAmount
+                        status: 'completed',
+                        actualWaterUsed: waterAmount
                     })
                 }
             );

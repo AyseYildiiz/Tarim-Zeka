@@ -89,9 +89,9 @@ router.patch('/schedules/:id', authenticateToken, async (req, res) => {
             await prisma.irrigationLog.create({
                 data: {
                     fieldId: schedule.fieldId,
-                    method: schedule.method || 'manual',
+                    scheduledDate: schedule.date,
                     waterUsed: actualWaterUsed ? parseFloat(actualWaterUsed) : schedule.waterAmount,
-                    duration: schedule.durationMinutes,
+                    duration: null,
                     notes: notes || `Scheduled irrigation completed`
                 }
             });

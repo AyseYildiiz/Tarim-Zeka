@@ -326,9 +326,11 @@ export default function CalendarScreen() {
 
             if (!task) return;
 
+            const newStatus = task.completed ? 'pending' : 'completed';
+
             // Backend'e gönder
             const response = await fetch(
-                `${API_URL}/irrigation/schedule/${taskId}/complete`,
+                `${API_URL}/irrigation/schedules/${taskId}`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -336,14 +338,13 @@ export default function CalendarScreen() {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        waterUsed: task.waterAmount
+                        status: newStatus,
+                        actualWaterUsed: task.waterAmount
                     })
                 }
             );
 
             if (!response.ok) {
-                const errorData = await response.json();
-
                 return;
             }
 
