@@ -1,6 +1,14 @@
 # TarımZeka
 
-Yapay zeka destekli akıllı tarım sulama yönetim sistemi.
+Yapay zeka destekli akıllı tarım platformu
+
+Tarım sektörü Türkiye'nin su tüketiminin yaklaşık %70'ini oluşturuyor.
+
+TarımZeka Türkiye'nin tarım sektöründe su verimliliğini artırmayı hedefliyor.
+
+Mobil uygulama, toprak tipini, hava koşullarını ve ürün çeşidini değerlendirmek için yapay zeka kullanıyor, yüklenen fotoğraflardan toprak analizi yapıyor ve çiftçiler için hassas su miktarı önerileriyle kişiselleştirilmiş sulama programları oluşturuyor.
+
+• Tech Stack: React Native (Expo), Node.js/Express, TypeScript, Prisma ORM, PostgreSQL
 
 ## Proje Yapısı
 
