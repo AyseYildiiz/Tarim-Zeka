@@ -164,9 +164,11 @@ router.get('/history', authenticateToken, async (req, res) => {
         console.log('✅ [SOIL] History count:', analyses.length);
 
         res.json(analyses.map(a => ({
-            ...a,
-            aiResponse: safeJsonParse(a.aiResponse),
-            waterManagement: safeJsonParse(a.waterManagement)
+            id: a.id,
+            imageUrl: a.imageUrl,
+            analysis: safeJsonParse(a.aiResponse),
+            analysisDate: a.analysisDate,
+            // Optionally add other fields if needed by frontend
         })));
 
     } catch (error) {
