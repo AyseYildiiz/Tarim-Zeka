@@ -5,17 +5,15 @@ const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 
 // Route imports
-const {
-    authRoutes,
-    locationRoutes,
-    weatherRoutes,
-    fieldRoutes,
-    soilAnalysisRoutes,
-    irrigationRoutes,
-    savingsRoutes,
-    notificationRoutes,
-    userRoutes
-} = require('./routes');
+const authRoutes = require('./routes/auth');
+const locationRoutes = require('./routes/location');
+const weatherRoutes = require('./routes/weather');
+const fieldRoutes = require('./routes/fields');
+const soilAnalysisRoutes = require('./routes/soilAnalysis');
+const irrigationRoutes = require('./routes/irrigation');
+const savingsRoutes = require('./routes/savings');
+const notificationRoutes = require('./routes/notifications');
+const userRoutes = require('./routes/users');
 
 const app = express();
 
