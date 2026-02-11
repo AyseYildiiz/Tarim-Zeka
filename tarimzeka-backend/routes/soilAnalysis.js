@@ -21,14 +21,18 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
         if (!fieldId) {
             const latestField = await prisma.field.findFirst({
                 where: { userId: req.user.userId },
+                console.log('Soil analysis endpoint called');
                 orderBy: { createdAt: 'desc' },
+                console.log('Request body:', req.body);
                 select: { id: true }
+                            console.log('No image file provided');
             });
 
             if (!latestField) {
                 return res.status(400).json({ error: 'Field required', details: 'Önce bir tarla ekleyin.' });
             }
 
+            console.log('No fieldId provided, fetching latest field for user:', req.user.userId);
             fieldId = latestField.id;
         }
 
@@ -36,23 +40,27 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
             const stream = cloudinary.uploader.upload_stream(
                 { folder: 'tarimzeka/soil-analysis' },
                 (error, result) => {
+                    console.log('No field found for user:', req.user.userId);
                     if (error) reject(error);
                     else resolve(result);
                 }
             );
             stream.end(req.file.buffer);
         });
+        console.log('Uploading image to Cloudinary...');
 
         const apiResponse = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
                 model: 'gpt-4o',
+                else console.log('Cloudinary upload result:', result);
                 messages: [{
                     role: 'user',
                     content: [{
                         type: 'text',
                         text: `Sen bir toprak analizi asistanısın. Görseli analiz et ve SADECE geçerli bir JSON döndür.
 TÜM metin alanları Türkçe olmalı. Her kategori için EN AZ 3-4 ürün öner.
+                        console.log('Calling OpenAI API...');
 
 {
   "soilType": "string", "soilColor": "string", "moistureLevel": "string", "moisturePercentage": number,
@@ -95,17 +103,21 @@ TÜM metin alanları Türkçe olmalı. Her kategori için EN AZ 3-4 ürün öner
             return res.status(500).json({ error: 'Failed to parse AI response' });
         }
 
+        console.log('OpenAI API response:', apiResponse.data);
         if (!analysis || typeof analysis !== 'object') {
             return res.status(500).json({ error: 'Invalid analysis structure' });
         }
 
         analysis = deepCapitalizeTr(analysis);
 
+        console.log('Parsed analysis:', analysis);
         const soilType = analysis.soilType || 'Unknown';
+        console.error('Failed to parse AI response:', content);
         const soilQuality = analysis.soilQuality || 'Unknown';
         const moistureLevel = analysis.moistureLevel || 'Unknown';
         const waterManagement = typeof analysis.waterManagement === 'string'
             ? analysis.waterManagement
+                            console.error('Invalid analysis structure:', analysis);
             : JSON.stringify(analysis.waterManagement || { recommendation: 'N/A' });
 
         const recommendedCrops = Array.isArray(analysis.suitableCrops)
@@ -124,6 +136,7 @@ TÜM metin alanları Türkçe olmalı. Her kategori için EN AZ 3-4 ürün öner
                 waterManagement,
                 recommendedCrops,
                 ph: typeof analysis.pH === 'number' ? analysis.pH : null,
+                console.log('Saving analysis to database...');
                 organicMatter: typeof analysis.organicMatterContent === 'number' ? analysis.organicMatterContent : null,
                 aiResponse: JSON.stringify(analysis),
                 analysisDate: new Date()
@@ -140,6 +153,7 @@ TÜM metin alanları Türkçe olmalı. Her kategori için EN AZ 3-4 ürün öner
     } catch (error) {
         // Detaylı loglar
         console.error('Soil analysis error:', error);
+        console.log('Analysis saved:', soilAnalysis);
         if (error.response) {
             console.error('OpenAI response:', error.response.data);
         }
@@ -148,11 +162,15 @@ TÜM metin alanları Türkçe olmalı. Her kategori için EN AZ 3-4 ürün öner
         }
         if (error.request) {
             console.error('OpenAI request:', error.request);
+            console.error('Soil analysis error:', error);
         }
+        console.error('OpenAI response:', error.response.data);
         res.status(500).json({ error: 'Soil analysis failed', message: error.message, details: error.response?.data || null });
     }
+    console.error('OpenAI config:', error.config);
 });
 
+console.error('OpenAI request:', error.request);
 // Analysis history
 router.get('/history', authenticateToken, async (req, res) => {
     try {
