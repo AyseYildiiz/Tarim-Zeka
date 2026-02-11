@@ -1,3 +1,5 @@
+// Backend - routes/soilAnalysis.js - TAM HALİ
+
 const express = require('express');
 const axios = require('axios');
 const cloudinary = require('cloudinary').v2;
@@ -127,11 +129,12 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
 
         console.log('🎉 [SOIL] Kayıt tamamlandı | id:', soilAnalysis.id);
 
+        // FRONTEND'İN BEKLEDİĞİ FORMAT
         res.json({
             success: true,
             id: soilAnalysis.id,
             imageUrl: soilAnalysis.imageUrl,
-            aiResponse: analysis,
+            aiResponse: analysis,  // ✅ OBJECT olarak dönüyor
             analysisDate: soilAnalysis.analysisDate
         });
 
@@ -163,12 +166,12 @@ router.get('/history', authenticateToken, async (req, res) => {
 
         console.log('✅ [SOIL] History count:', analyses.length);
 
+        // FRONTEND'İN BEKLEDİĞİ FORMAT
         res.json(analyses.map(a => ({
             id: a.id,
             imageUrl: a.imageUrl,
-            analysis: safeJsonParse(a.aiResponse),
-            analysisDate: a.analysisDate,
-            // Optionally add other fields if needed by frontend
+            aiResponse: safeJsonParse(a.aiResponse),  // ✅ OBJECT olarak parse ediliyor
+            createdAt: a.analysisDate  // ✅ createdAt olarak dönüyor
         })));
 
     } catch (error) {

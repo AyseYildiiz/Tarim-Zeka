@@ -1,3 +1,6 @@
+// Frontend - SoilAnalysisScreen.tsx - TAM HALİ
+// (sadece değişen kısımlar işaretli)
+
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -124,21 +127,37 @@ export default function SoilAnalysisScreen() {
     const loadHistory = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
+            console.log('📥 [FRONTEND] Loading history...');
+
             const response = await fetch(`${API_URL}/soil-analysis/history`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.ok) {
                 const data = await response.json();
+                console.log('✅ [FRONTEND] History received:', data.length, 'items');
+
+                if (data.length > 0) {
+                    console.log('📊 [FRONTEND] First item structure:', {
+                        id: data[0].id,
+                        hasImageUrl: !!data[0].imageUrl,
+                        hasAiResponse: !!data[0].aiResponse,
+                        aiResponseType: typeof data[0].aiResponse
+                    });
+                }
+
+                // ✅ BACKEND'DEN GELEN FORMAT: {id, imageUrl, aiResponse, createdAt}
                 setHistory(data.map((item: any) => ({
                     id: item.id,
                     imageUrl: item.imageUrl,
-                    analysis: item.aiResponse,
-                    createdAt: item.analysisDate
+                    analysis: item.aiResponse,  // ✅ Backend'den aiResponse geliyor
+                    createdAt: item.createdAt   // ✅ Backend'den createdAt geliyor
                 })));
+            } else {
+                console.log('❌ [FRONTEND] History response not ok:', response.status);
             }
         } catch (error) {
-
+            console.error('❌ [FRONTEND] History error:', error);
         } finally {
             setLoadingHistory(false);
         }
@@ -155,7 +174,7 @@ export default function SoilAnalysisScreen() {
                     return;
                 }
                 result = await ImagePicker.launchCameraAsync({
-                    mediaTypes: ['images'],  // Güncellenmiş API
+                    mediaTypes: ['images'],
                     allowsEditing: true,
                     aspect: [4, 3],
                     quality: 0.8,
@@ -167,7 +186,7 @@ export default function SoilAnalysisScreen() {
                     return;
                 }
                 result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ['images'],  // Güncellenmiş API
+                    mediaTypes: ['images'],
                     allowsEditing: true,
                     aspect: [4, 3],
                     quality: 0.8,
@@ -179,7 +198,7 @@ export default function SoilAnalysisScreen() {
                 setResult(null);
             }
         } catch (error) {
-
+            console.error('❌ [FRONTEND] Image pick error:', error);
             Alert.alert('Hata', 'Görsel seçilemedi');
         }
     };
@@ -198,15 +217,14 @@ export default function SoilAnalysisScreen() {
                 return;
             }
 
+            console.log('🚀 [FRONTEND] Starting analysis...');
+
             const formData = new FormData();
             formData.append('image', {
                 uri: imageUri,
                 type: 'image/jpeg',
                 name: 'soil.jpg',
             } as any);
-
-
-
 
             const response = await fetch(`${API_URL}/soil-analysis`, {
                 method: 'POST',
@@ -216,25 +234,34 @@ export default function SoilAnalysisScreen() {
                 body: formData,
             });
 
-
-
             if (!response.ok) {
                 throw new Error(`HTTP Error: ${response.status}`);
             }
 
             const data = await response.json();
 
+            console.log('✅ [FRONTEND] Analysis response:', {
+                id: data.id,
+                hasImageUrl: !!data.imageUrl,
+                hasAiResponse: !!data.aiResponse,
+                aiResponseType: typeof data.aiResponse,
+                soilType: data.aiResponse?.soilType
+            });
 
+            // ✅ BACKEND'DEN GELEN FORMAT: {id, imageUrl, aiResponse, analysisDate}
             setResult({
                 id: data.id,
                 imageUrl: data.imageUrl,
-                analysis: data.aiResponse,
+                analysis: data.aiResponse,  // ✅ Backend'den aiResponse geliyor (zaten object)
                 createdAt: data.analysisDate,
             });
 
+            // ✅ History'yi yenile
+            await loadHistory();
+
             Alert.alert('Başarılı', 'Analiz tamamlandı!');
         } catch (error: any) {
-
+            console.error('❌ [FRONTEND] Analysis error:', error);
             Alert.alert('Hata', `Analiz başarısız: ${error.message}`);
         } finally {
             setAnalyzing(false);
@@ -272,9 +299,24 @@ export default function SoilAnalysisScreen() {
     };
 
     const renderAnalysisResult = () => {
-        if (!result?.analysis) return null;
+        // ✅ GUARD CLAUSE
+        if (!result?.analysis) {
+            console.log('⚠️ [FRONTEND] No analysis data to render');
+            return (
+                <View style={styles.emptyHistory}>
+                    <Ionicons name="alert-circle-outline" size={60} color={colors.textTertiary} />
+                    <Text style={styles.emptyHistoryText}>Analiz verisi yüklenemedi</Text>
+                </View>
+            );
+        }
 
         const analysis = result.analysis;
+
+        console.log('🎨 [FRONTEND] Rendering analysis:', {
+            soilType: analysis.soilType,
+            hasScore: !!analysis.overallScore,
+            score: analysis.overallScore?.value
+        });
 
         return (
             <ScrollView style={styles.resultContainer} showsVerticalScrollIndicator={false}>
@@ -347,20 +389,22 @@ export default function SoilAnalysisScreen() {
                         </View>
 
                         {/* Doku Bilgisi */}
-                        <View style={styles.textureCard}>
-                            <Text style={styles.textureTitle}>Toprak Dokusu: {analysis.texture?.class}</Text>
-                            <View style={styles.textureBar}>
-                                <View style={[styles.textureSegment, { flex: analysis.texture?.sandPercentage || 33, backgroundColor: '#F59E0B' }]}>
-                                    <Text style={styles.texturePercent}>Kum %{analysis.texture?.sandPercentage}</Text>
-                                </View>
-                                <View style={[styles.textureSegment, { flex: analysis.texture?.clayPercentage || 33, backgroundColor: '#EF4444' }]}>
-                                    <Text style={styles.texturePercent}>Kil %{analysis.texture?.clayPercentage}</Text>
-                                </View>
-                                <View style={[styles.textureSegment, { flex: analysis.texture?.siltPercentage || 33, backgroundColor: '#8B5CF6' }]}>
-                                    <Text style={styles.texturePercent}>Silt %{analysis.texture?.siltPercentage}</Text>
+                        {analysis.texture && (
+                            <View style={styles.textureCard}>
+                                <Text style={styles.textureTitle}>Toprak Dokusu: {analysis.texture?.class}</Text>
+                                <View style={styles.textureBar}>
+                                    <View style={[styles.textureSegment, { flex: analysis.texture?.sandPercentage || 33, backgroundColor: '#F59E0B' }]}>
+                                        <Text style={styles.texturePercent}>Kum %{analysis.texture?.sandPercentage}</Text>
+                                    </View>
+                                    <View style={[styles.textureSegment, { flex: analysis.texture?.clayPercentage || 33, backgroundColor: '#EF4444' }]}>
+                                        <Text style={styles.texturePercent}>Kil %{analysis.texture?.clayPercentage}</Text>
+                                    </View>
+                                    <View style={[styles.textureSegment, { flex: analysis.texture?.siltPercentage || 33, backgroundColor: '#8B5CF6' }]}>
+                                        <Text style={styles.texturePercent}>Silt %{analysis.texture?.siltPercentage}</Text>
+                                    </View>
                                 </View>
                             </View>
-                        </View>
+                        )}
                     </View>
                 )}
 
@@ -411,14 +455,16 @@ export default function SoilAnalysisScreen() {
                         <Text style={styles.nutrientDescription}>{analysis.nutrients?.description}</Text>
 
                         {/* Organik Madde */}
-                        <View style={styles.organicCard}>
-                            <View style={styles.organicHeader}>
-                                <Ionicons name="leaf" size={20} color="#16A34A" />
-                                <Text style={styles.organicTitle}>Organik Madde</Text>
+                        {analysis.organicMatter && (
+                            <View style={styles.organicCard}>
+                                <View style={styles.organicHeader}>
+                                    <Ionicons name="leaf" size={20} color="#16A34A" />
+                                    <Text style={styles.organicTitle}>Organik Madde</Text>
+                                </View>
+                                <Text style={styles.organicValue}>%{analysis.organicMatter?.percentage} - {analysis.organicMatter?.level}</Text>
+                                <Text style={styles.organicDescription}>{analysis.organicMatter?.description}</Text>
                             </View>
-                            <Text style={styles.organicValue}>%{analysis.organicMatter?.percentage} - {analysis.organicMatter?.level}</Text>
-                            <Text style={styles.organicDescription}>{analysis.organicMatter?.description}</Text>
-                        </View>
+                        )}
                     </View>
                 )}
 
@@ -438,7 +484,7 @@ export default function SoilAnalysisScreen() {
                     />
                 </TouchableOpacity>
 
-                {expandedSection === 'irrigation' && (
+                {expandedSection === 'irrigation' && analysis.irrigation && (
                     <View style={styles.sectionContent}>
                         <View style={[styles.needBadge, {
                             backgroundColor: analysis.irrigation?.currentNeed === 'acil' ? '#FEE2E2' :
@@ -508,7 +554,7 @@ export default function SoilAnalysisScreen() {
                     />
                 </TouchableOpacity>
 
-                {expandedSection === 'fertilization' && (
+                {expandedSection === 'fertilization' && analysis.fertilization && (
                     <View style={styles.sectionContent}>
                         {analysis.fertilization?.recommendations?.map((rec, index) => (
                             <View key={index} style={styles.fertilizerCard}>
@@ -551,7 +597,7 @@ export default function SoilAnalysisScreen() {
                     />
                 </TouchableOpacity>
 
-                {expandedSection === 'crops' && (
+                {expandedSection === 'crops' && analysis.suitableCrops && (
                     <View style={styles.sectionContent}>
                         {/* Çok Uygun */}
                         {analysis.suitableCrops?.excellent?.length > 0 && (
@@ -621,7 +667,7 @@ export default function SoilAnalysisScreen() {
                     />
                 </TouchableOpacity>
 
-                {expandedSection === 'improvement' && (
+                {expandedSection === 'improvement' && analysis.soilImprovement && (
                     <View style={styles.sectionContent}>
                         <View style={styles.priorityCard}>
                             <Ionicons name="alert-circle" size={20} color="#EF4444" />
@@ -676,6 +722,7 @@ export default function SoilAnalysisScreen() {
                         key={item.id}
                         style={styles.historyCard}
                         onPress={() => {
+                            console.log('📖 [FRONTEND] Opening history item:', item.id);
                             setResult(item);
                             setActiveTab('analyze');
                         }}
@@ -830,6 +877,7 @@ export default function SoilAnalysisScreen() {
     );
 }
 
+// Styles aynı kalıyor - değişiklik yok
 const createStyles = (colors: {
     background: string;
     surface: string;
