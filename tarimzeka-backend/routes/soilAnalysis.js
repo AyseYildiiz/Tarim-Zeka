@@ -74,95 +74,121 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
                 model: 'gpt-4o',
                 messages: [{
                     role: 'system',
-                    content: `Sen bir tarım uzmanısın. Toprak görselini analiz et ve SADECE JSON formatında yanıt ver. 
+                    content: `Sen bir tarım uzmanısın. Toprak görselini analiz et ve SADECE JSON formatında Türkçe yanıt ver. 
+Tüm açıklamaları, değerleri ve metinleri Türkçe yaz.
 Hiçbir açıklama, markdown, veya ekstra metin OLMADAN sadece JSON döndür.
 
-JSON formatı şu şekilde olmalı:
+JSON formatı şu şekilde olmalı (TÜM DEĞERLER TÜRKÇE):
 {
-  "soilType": "string",
-  "soilColor": "string",
-  "moistureLevel": "string",
-  "moisturePercentage": number,
+  "soilType": "Killi toprak / Kumlu toprak / Tınlı toprak vb.",
+  "soilColor": "Koyu kahverengi / Açık kahverengi vb.",
+  "moistureLevel": "Çok kuru / Kuru / Orta / Nemli / Islak",
+  "moisturePercentage": 45,
   "organicMatter": {
-    "level": "string",
-    "percentage": number,
-    "description": "string"
+    "level": "Düşük / Orta / Yüksek",
+    "percentage": 2.5,
+    "description": "Organik madde durumu hakkında Türkçe açıklama"
   },
   "structure": {
-    "type": "string",
-    "quality": "string",
-    "description": "string"
+    "type": "Granüler / Blok / Levhamsı vb.",
+    "quality": "İyi / Orta / Zayıf",
+    "description": "Toprak yapısı hakkında Türkçe açıklama"
   },
   "texture": {
-    "class": "string",
-    "sandPercentage": number,
-    "clayPercentage": number,
-    "siltPercentage": number
+    "class": "Killi / Kumlu / Tınlı / Killi-tın vb.",
+    "sandPercentage": 30,
+    "clayPercentage": 40,
+    "siltPercentage": 30
   },
   "drainage": {
-    "status": "string",
-    "description": "string"
+    "status": "İyi / Orta / Zayıf",
+    "description": "Drenaj durumu hakkında Türkçe açıklama"
   },
   "ph": {
-    "estimated": number,
-    "status": "string",
-    "description": "string"
+    "estimated": 6.8,
+    "status": "Asidik / Nötr / Bazik",
+    "description": "pH seviyesi hakkında Türkçe açıklama"
   },
   "nutrients": {
-    "nitrogen": "string",
-    "phosphorus": "string",
-    "potassium": "string",
-    "description": "string"
+    "nitrogen": "Düşük / Orta / Yüksek",
+    "phosphorus": "Düşük / Orta / Yüksek",
+    "potassium": "Düşük / Orta / Yüksek",
+    "description": "Besin elementi durumu hakkında Türkçe açıklama"
   },
   "irrigation": {
-    "currentNeed": "string",
-    "recommendedMethod": "string",
-    "frequency": "string",
-    "amount": "string",
-    "bestTime": "string",
-    "warnings": ["string"]
+    "currentNeed": "Acil / Yakında / Normal / Gerek yok",
+    "recommendedMethod": "Damla sulama / Yağmurlama / Salma sulama vb.",
+    "frequency": "Günlük / Haftada 2-3 kez / Haftada 1 kez vb.",
+    "amount": "20-30 mm / 40-50 litre/m² vb.",
+    "bestTime": "Sabah erken saatler / Akşam saatleri vb.",
+    "warnings": ["Türkçe uyarı 1", "Türkçe uyarı 2"]
   },
   "fertilization": {
-    "needed": boolean,
+    "needed": true,
     "recommendations": [{
-      "type": "string",
-      "product": "string",
-      "amount": "string",
-      "timing": "string",
-      "method": "string"
+      "type": "Azotlu / Fosforlu / Potasyumlu / Kompoze gübre",
+      "product": "20-20-0 NPK / Amonyum nitrat vb.",
+      "amount": "100-150 kg/dekar",
+      "timing": "Ekimden önce / Büyüme döneminde vb.",
+      "method": "Toprağa karıştırarak / Yaprak gübrelemesi vb."
     }],
-    "organicOptions": ["string"]
+    "organicOptions": ["Ahır gübresi", "Kompost", "Yeşil gübre vb."]
   },
   "suitableCrops": {
-    "excellent": [{"name": "string", "reason": "string", "tips": "string"}],
-    "good": [{"name": "string", "reason": "string", "precautions": "string"}],
-    "notRecommended": [{"name": "string", "reason": "string"}]
+    "excellent": [
+      {
+        "name": "Domates",
+        "reason": "Bu ürünün bu toprakta yetişme sebebi (Türkçe)",
+        "tips": "Yetiştirme ipuçları (Türkçe)"
+      }
+    ],
+    "good": [
+      {
+        "name": "Biber",
+        "reason": "Uygun olma sebebi (Türkçe)",
+        "precautions": "Dikkat edilmesi gerekenler (Türkçe)"
+      }
+    ],
+    "notRecommended": [
+      {
+        "name": "Patates",
+        "reason": "Önerilmeme sebebi (Türkçe)"
+      }
+    ]
   },
   "soilImprovement": {
-    "shortTerm": ["string"],
-    "longTerm": ["string"],
-    "priority": "string"
+    "shortTerm": [
+      "Kısa vadeli öneri 1 (Türkçe)",
+      "Kısa vadeli öneri 2 (Türkçe)"
+    ],
+    "longTerm": [
+      "Uzun vadeli öneri 1 (Türkçe)",
+      "Uzun vadeli öneri 2 (Türkçe)"
+    ],
+    "priority": "En öncelikli yapılması gereken (Türkçe)"
   },
   "problems": [{
-    "type": "string",
-    "severity": "string",
-    "description": "string",
-    "solution": "string"
+    "type": "Sorun türü (Türkçe)",
+    "severity": "Düşük / Orta / Yüksek",
+    "description": "Sorun açıklaması (Türkçe)",
+    "solution": "Çözüm önerisi (Türkçe)"
   }],
   "overallScore": {
-    "value": number,
-    "label": "string",
-    "summary": "string"
+    "value": 75,
+    "label": "Çok İyi / İyi / Orta / Zayıf / Çok Zayıf",
+    "summary": "Genel değerlendirme özeti (Türkçe)"
   },
-  "confidence": number,
-  "additionalNotes": "string"
-}`
+  "confidence": 85,
+  "additionalNotes": "Ek notlar ve öneriler (Türkçe)"
+}
+
+ÖNEMLİ: Tüm metin alanlarını Türkçe doldur. İngilizce kelime kullanma.`
                 }, {
                     role: 'user',
                     content: [
                         {
                             type: 'text',
-                            text: 'Bu toprak görselini yukarıdaki JSON formatında analiz et. SADECE JSON döndür, başka hiçbir şey yazma.'
+                            text: 'Bu toprak görselini detaylı şekilde analiz et. Tüm açıklamaları Türkçe yaz. SADECE JSON formatında yanıt ver, başka hiçbir şey yazma.'
                         },
                         {
                             type: 'image_url',
