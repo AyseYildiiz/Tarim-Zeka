@@ -90,6 +90,7 @@ const sendMail = async ({ to, subject, text, html, from, replyTo }) => {
         html,
         replyTo: replyTo || process.env.SMTP_FROM
     };
+    console.log('SendGrid msg:', msg);
     return sgMail.send(msg);
 };
 
