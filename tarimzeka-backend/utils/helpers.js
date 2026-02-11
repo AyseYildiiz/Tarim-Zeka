@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
 // Turkish character normalization
 const normalizeTrKey = (value) => {
@@ -75,22 +75,22 @@ const hashToken = (token) => {
     return crypto.createHash('sha256').update(token).digest('hex');
 };
 
-// Mail transporter
-const getMailTransporter = () => {
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-    if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
-        return null;
-    }
 
-    return nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: Number(SMTP_PORT),
-        secure: Number(SMTP_PORT) === 465,
-        auth: {
-            user: SMTP_USER,
-            pass: SMTP_PASS,
-        },
-    });
+// SendGrid mail sender
+const sendMail = async ({ to, subject, text, html, from, replyTo }) => {
+    if (!process.env.SENDGRID_API_KEY) {
+        throw new Error('SENDGRID_API_KEY env değişkeni eksik!');
+    }
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    const msg = {
+        to,
+        from: from || process.env.SMTP_FROM,
+        subject,
+        text,
+        html,
+        replyTo: replyTo || process.env.SMTP_FROM
+    };
+    return sgMail.send(msg);
 };
 
 module.exports = {
@@ -102,5 +102,5 @@ module.exports = {
     getWeekNumber,
     createResetToken,
     hashToken,
-    getMailTransporter
+    sendMail
 };

@@ -9,3 +9,6 @@ tarimzeka-mobile/.expo/
 # OS
 .DS_Store
 *.log
+
+
+node_modules/

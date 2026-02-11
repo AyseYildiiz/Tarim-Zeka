@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/database');
-const { createResetToken, hashToken, getMailTransporter } = require('../utils/helpers');
+const { createResetToken, hashToken, sendMail } = require('../utils/helpers');
 const { JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
@@ -84,19 +84,15 @@ router.post('/forgot-password', async (req, res) => {
             data: { userId: user.id, tokenHash, expiresAt }
         });
 
-        const transporter = getMailTransporter();
-        const fromAddress = process.env.SMTP_FROM || 'no-reply@tarimzeka.com';
-        console.log('Mail transporter:', transporter ? 'Hazır' : 'YOK');
-        if (transporter) {
-            const subject = 'TarimZeka - Sifre Sifirlama';
-            const text = [
-                'Sifrenizi yenilemek icin asagidaki kodu uygulamada kullanin:',
-                token, '',
-                'Kodu kopyalayip uygulamaya yapistirin.', '',
-                'Kod 30 dakika gecerlidir.'
-            ].join('\n');
+        const subject = 'TarimZeka - Sifre Sifirlama';
+        const text = [
+            'Sifrenizi yenilemek icin asagidaki kodu uygulamada kullanin:',
+            token, '',
+            'Kodu kopyalayip uygulamaya yapistirin.', '',
+            'Kod 30 dakika gecerlidir.'
+        ].join('\n');
 
-            const html = `
+        const html = `
 <!doctype html>
 <html>
     <body style="margin:0;padding:0;background:#f6f9fc;font-family:Arial,Helvetica,sans-serif;">
@@ -113,15 +109,19 @@ router.post('/forgot-password', async (req, res) => {
         </div>
     </body>
 </html>`;
-            try {
-                console.log('Mail gönderiliyor:', user.email);
-                await transporter.sendMail({ from: fromAddress, to: user.email, subject, text, html });
-                console.log('Mail gönderildi:', user.email);
-            } catch (mailError) {
-                console.error('Mail gönderme hatası:', mailError);
-            }
-        } else {
-            console.error('Mail transporter YOK, SMTP env eksik!');
+        try {
+            console.log('Mail gönderiliyor:', user.email);
+            await sendMail({
+                from: process.env.SMTP_FROM,
+                to: user.email,
+                subject,
+                text,
+                html,
+                replyTo: process.env.SMTP_FROM
+            });
+            console.log('Mail gönderildi:', user.email);
+        } catch (mailError) {
+            console.error('Mail gönderme hatası:', mailError);
         }
 
         return res.json({ message: 'Eğer hesap varsa link gönderildi' });
