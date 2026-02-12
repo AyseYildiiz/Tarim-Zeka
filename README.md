@@ -10,6 +10,12 @@ Mobil uygulama, toprak tipini, hava koşullarını ve ürün çeşidini değerle
 
 • Tech Stack: React Native (Expo), Node.js/Express, TypeScript, Prisma ORM, PostgreSQL
 
+Tarım Zeka Tanıtım Videosu:
+https://youtube.com/shorts/XsgvebtxJwU
+
+<img width="1080" height="764" alt="TarımZeka" src="https://github.com/user-attachments/assets/52c6226c-1f91-49f0-8c82-0a8c835e811b" />
+
+
 ## Proje Yapısı
 
 ```
